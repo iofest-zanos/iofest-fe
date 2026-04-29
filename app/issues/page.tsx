@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Search, Filter, Flame, Clock, Users, MessageSquare, TrendingUp, ChevronRight } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, Filter, Clock, Users, MessageSquare, TrendingUp, ChevronRight, X } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 
 type IssueStatus = "DIAJUKAN" | "SEDANG_DIBAHAS" | "DRAFT" | "PENGESAHAN" | "HASIL";
 type CategoryKey = "DIGITAL_RIGHTS" | "INFRASTRUCTURE" | "PUBLIC_POLICY" | "ENVIRONMENT" | "EDUCATION" | "HEALTH" | "ECONOMY";
+type ScopeKey = "ALL" | "NASIONAL" | "DKI_JAKARTA" | "JAWA_BARAT" | "JAWA_TIMUR";
 
 interface Issue {
   id: number;
@@ -16,11 +17,11 @@ interface Issue {
   status: IssueStatus;
   category: CategoryKey;
   scopeLabel: string;
+  scopeKey: ScopeKey;
   author: { name: string; tier: "PAKAR" | "PEJABAT" | "WARGA"; profession: string };
   participants: number;
   stances: number;
   votes: number;
-  heatScore: number;
   tags: string[];
   timeAgo: string;
 }
@@ -43,6 +44,14 @@ const CATEGORY_LABELS: Record<CategoryKey, string> = {
   ECONOMY:        "Ekonomi",
 };
 
+const SCOPE_LABELS: Record<ScopeKey, string> = {
+  ALL: "Semua",
+  NASIONAL: "Nasional",
+  DKI_JAKARTA: "DKI Jakarta",
+  JAWA_BARAT: "Jawa Barat",
+  JAWA_TIMUR: "Jawa Timur",
+};
+
 const TIER_CONFIG = {
   PAKAR:   { cls: "bg-accent text-accent-foreground" },
   PEJABAT: { cls: "bg-status-enacted text-white" },
@@ -58,11 +67,11 @@ const MOCK_ISSUES: Issue[] = [
     status: "SEDANG_DIBAHAS",
     category: "DIGITAL_RIGHTS",
     scopeLabel: "Nasional",
+    scopeKey: "NASIONAL",
     author: { name: "Dr. Sari Wijaya", tier: "PAKAR", profession: "Akademisi Hukum" },
     participants: 156,
     stances: 47,
     votes: 4231,
-    heatScore: 0.92,
     tags: ["privasi", "data-pribadi", "UU-PDP"],
     timeAgo: "2 jam lalu",
   },
@@ -74,11 +83,11 @@ const MOCK_ISSUES: Issue[] = [
     status: "DRAFT",
     category: "INFRASTRUCTURE",
     scopeLabel: "DKI Jakarta",
+    scopeKey: "DKI_JAKARTA",
     author: { name: "Pak Joko Santoso", tier: "PAKAR", profession: "Peneliti Transportasi" },
     participants: 89,
     stances: 31,
     votes: 2150,
-    heatScore: 0.73,
     tags: ["transportasi", "DKI", "mobilitas"],
     timeAgo: "5 jam lalu",
   },
@@ -90,11 +99,11 @@ const MOCK_ISSUES: Issue[] = [
     status: "PENGESAHAN",
     category: "PUBLIC_POLICY",
     scopeLabel: "Nasional",
+    scopeKey: "NASIONAL",
     author: { name: "Mbak Lia Rahayu", tier: "PAKAR", profession: "Jurnalis Investigasi" },
     participants: 234,
     stances: 78,
     votes: 8920,
-    heatScore: 0.88,
     tags: ["anggaran", "transparansi", "akuntabilitas"],
     timeAgo: "1 hari lalu",
   },
@@ -106,11 +115,11 @@ const MOCK_ISSUES: Issue[] = [
     status: "SEDANG_DIBAHAS",
     category: "DIGITAL_RIGHTS",
     scopeLabel: "Nasional",
+    scopeKey: "NASIONAL",
     author: { name: "Ahmad Fauzi, S.H.", tier: "PAKAR", profession: "Pengacara Media" },
     participants: 312,
     stances: 93,
     votes: 11200,
-    heatScore: 0.97,
     tags: ["pers", "KPI", "streaming", "kebebasan-berekspresi"],
     timeAgo: "3 jam lalu",
   },
@@ -122,11 +131,11 @@ const MOCK_ISSUES: Issue[] = [
     status: "DIAJUKAN",
     category: "ENVIRONMENT",
     scopeLabel: "DKI Jakarta",
+    scopeKey: "DKI_JAKARTA",
     author: { name: "Pak Eko Nugroho", tier: "PAKAR", profession: "Aktivis Lingkungan" },
     participants: 67,
     stances: 22,
     votes: 980,
-    heatScore: 0.58,
     tags: ["reklamasi", "teluk-jakarta", "nelayan", "lingkungan"],
     timeAgo: "2 hari lalu",
   },
@@ -138,11 +147,11 @@ const MOCK_ISSUES: Issue[] = [
     status: "HASIL",
     category: "ECONOMY",
     scopeLabel: "Nasional",
+    scopeKey: "NASIONAL",
     author: { name: "Rina Kusuma, M.H.", tier: "PAKAR", profession: "Akademisi Hukum Perburuhan" },
     participants: 178,
     stances: 54,
     votes: 5670,
-    heatScore: 0.81,
     tags: ["gig-economy", "ketenagakerjaan", "ojol"],
     timeAgo: "8 jam lalu",
   },
@@ -168,25 +177,83 @@ const STATUSES: { key: IssueStatus | "ALL"; label: string }[] = [
   { key: "HASIL", label: "Hasil Pengesahan" },
 ];
 
-function HeatBar({ score }: { score: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-24 bg-muted rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all ${
-            score >= 0.85 ? "bg-status-hot" :
-            score >= 0.65 ? "bg-status-open" :
-            "bg-status-proposed"
-          }`}
-          style={{ width: `${score * 100}%` }}
-        />
-      </div>
-      <span className="text-[0.65rem] text-muted-foreground font-mono">
-        {Math.round(score * 100)}
-      </span>
-    </div>
-  );
+const SCOPES: { key: ScopeKey; label: string }[] = [
+  { key: "ALL", label: "Semua" },
+  { key: "NASIONAL", label: "Nasional" },
+  { key: "DKI_JAKARTA", label: "DKI Jakarta" },
+  { key: "JAWA_BARAT", label: "Jawa Barat" },
+  { key: "JAWA_TIMUR", label: "Jawa Timur" },
+];
+
+// Simple fuzzy search function
+function fuzzySearch(issues: Issue[], query: string): Issue[] {
+  if (!query.trim()) return issues;
+  
+  const searchTerm = query.toLowerCase().trim();
+  const terms = searchTerm.split(/\s+/);
+  
+  return issues.filter((issue) => {
+    const searchableText = [
+      issue.title,
+      issue.description,
+      issue.author.name,
+      issue.author.profession,
+      issue.scopeLabel,
+      CATEGORY_LABELS[issue.category],
+      STATUS_CONFIG[issue.status].label,
+      ...issue.tags,
+    ].join(" ").toLowerCase();
+    
+    // Check if all terms match (AND logic)
+    return terms.every((term) => {
+      // Exact match
+      if (searchableText.includes(term)) return true;
+      
+      // Fuzzy match - allow for minor typos (character difference <= 2 for terms > 3 chars)
+      if (term.length > 3) {
+        const words = searchableText.split(/\s+/);
+        return words.some((word) => {
+          if (Math.abs(word.length - term.length) > 2) return false;
+          const distance = levenshteinDistance(word, term);
+          return distance <= 2;
+        });
+      }
+      
+      return false;
+    });
+  });
 }
+
+// Levenshtein distance for fuzzy matching
+function levenshteinDistance(a: string, b: string): number {
+  const matrix: number[][] = [];
+  
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  
+  return matrix[b.length][a.length];
+}
+
+
 
 function IssueCard({ issue }: { issue: Issue }) {
   const status = STATUS_CONFIG[issue.status];
@@ -259,11 +326,9 @@ function IssueCard({ issue }: { issue: Issue }) {
             <span>pernyataan</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 text-[0.65rem] text-muted-foreground">
-            <Clock className="w-3 h-3" />
-            {issue.timeAgo}
-          </div>
+        <div className="flex items-center gap-1 text-[0.65rem] text-muted-foreground">
+          <Clock className="w-3 h-3" />
+          {issue.timeAgo}
         </div>
       </div>
     </Link>
@@ -272,11 +337,63 @@ function IssueCard({ issue }: { issue: Issue }) {
 
 export default function IssuesPage() {
   const [selectedStatus, setSelectedStatus] = useState<IssueStatus | "ALL">("ALL");
+  const [selectedCategory, setSelectedCategory] = useState<CategoryKey | "ALL">("ALL");
+  const [selectedScope, setSelectedScope] = useState<ScopeKey>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"newest" | "participants" | "votes">("newest");
 
-  const hotIssues = MOCK_ISSUES.filter((i) => i.heatScore >= 0.85);
-  const allIssues = selectedStatus === "ALL"
-    ? MOCK_ISSUES
-    : MOCK_ISSUES.filter((issue) => issue.status === selectedStatus);
+  // Apply filters and search
+  const filteredIssues = useMemo(() => {
+    let result = [...MOCK_ISSUES];
+    
+    // Status filter
+    if (selectedStatus !== "ALL") {
+      result = result.filter((issue) => issue.status === selectedStatus);
+    }
+    
+    // Category filter
+    if (selectedCategory !== "ALL") {
+      result = result.filter((issue) => issue.category === selectedCategory);
+    }
+    
+    // Scope filter
+    if (selectedScope !== "ALL") {
+      result = result.filter((issue) => issue.scopeKey === selectedScope);
+    }
+    
+    // Fuzzy search
+    if (searchQuery.trim()) {
+      result = fuzzySearch(result, searchQuery);
+    }
+    
+    // Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return b.id - a.id;
+        case "participants":
+          return b.participants - a.participants;
+        case "votes":
+          return b.votes - a.votes;
+        default:
+          return 0;
+      }
+    });
+    
+    return result;
+  }, [selectedStatus, selectedCategory, selectedScope, searchQuery, sortBy]);
+
+  const allFilteredIssues = filteredIssues;
+
+  // Check if any filter is active
+  const hasActiveFilters = selectedStatus !== "ALL" || selectedCategory !== "ALL" || selectedScope !== "ALL" || searchQuery !== "";
+
+  const clearFilters = () => {
+    setSelectedStatus("ALL");
+    setSelectedCategory("ALL");
+    setSelectedScope("ALL");
+    setSearchQuery("");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -295,7 +412,7 @@ export default function IssuesPage() {
                   Isu Kebijakan Publik
                 </h1>
                 <p className="text-muted-foreground text-sm">
-                  {allIssues.length} isu aktif dari seluruh Indonesia
+                  {filteredIssues.length} isu aktif dari seluruh Indonesia
                 </p>
               </div>
 
@@ -304,11 +421,66 @@ export default function IssuesPage() {
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="search"
-                  placeholder="Cari isu atau topik..."
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari isu, tag, atau topik..."
+                  className="w-full pl-10 pr-10 py-2.5 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
+
+            {/* Active filters display */}
+            {hasActiveFilters && (
+              <div className="flex items-center gap-2 mt-4 flex-wrap">
+                <span className="text-xs text-muted-foreground">Filter aktif:</span>
+                {selectedStatus !== "ALL" && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                    Status: {STATUSES.find(s => s.key === selectedStatus)?.label}
+                    <button onClick={() => setSelectedStatus("ALL")} className="hover:text-primary/70">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedCategory !== "ALL" && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-accent/10 text-accent px-2 py-1 rounded-full">
+                    Kategori: {CATEGORIES.find(c => c.key === selectedCategory)?.label}
+                    <button onClick={() => setSelectedCategory("ALL")} className="hover:text-accent/70">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedScope !== "ALL" && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-status-open/10 text-status-open px-2 py-1 rounded-full">
+                    Cakupan: {SCOPE_LABELS[selectedScope]}
+                    <button onClick={() => setSelectedScope("ALL")} className="hover:text-status-open/70">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {searchQuery && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-muted text-foreground px-2 py-1 rounded-full">
+                    Search: &quot;{searchQuery}&quot;
+                    <button onClick={() => setSearchQuery("")} className="hover:text-muted-foreground">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                <button
+                  onClick={clearFilters}
+                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                >
+                  Hapus semua filter
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -325,13 +497,18 @@ export default function IssuesPage() {
                   <button
                     key={s.key}
                     onClick={() => setSelectedStatus(s.key)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
                       s.key === selectedStatus
                         ? "bg-primary/10 text-primary font-medium"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                     }`}
                   >
-                    {s.label}
+                    <span>{s.label}</span>
+                    {s.key !== "ALL" && (
+                      <span className="text-[0.65rem] text-muted-foreground/60">
+                        {MOCK_ISSUES.filter(i => i.status === s.key).length}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -346,9 +523,19 @@ export default function IssuesPage() {
                 {CATEGORIES.map((c) => (
                   <button
                     key={c.key}
-                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                    onClick={() => setSelectedCategory(c.key)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                      c.key === selectedCategory
+                        ? "bg-accent/10 text-accent font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                    }`}
                   >
-                    {c.label}
+                    <span>{c.label}</span>
+                    {c.key !== "ALL" && (
+                      <span className="text-[0.65rem] text-muted-foreground/60">
+                        {MOCK_ISSUES.filter(i => i.category === c.key).length}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -360,12 +547,22 @@ export default function IssuesPage() {
                 Cakupan
               </p>
               <div className="space-y-0.5">
-                {["Semua", "Nasional", "DKI Jakarta", "Jawa Barat", "Jawa Timur"].map((scope) => (
+                {SCOPES.map((scope) => (
                   <button
-                    key={scope}
-                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                    key={scope.key}
+                    onClick={() => setSelectedScope(scope.key)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                      scope.key === selectedScope
+                        ? "bg-status-open/10 text-status-open font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                    }`}
                   >
-                    {scope}
+                    <span>{scope.label}</span>
+                    {scope.key !== "ALL" && (
+                      <span className="text-[0.65rem] text-muted-foreground/60">
+                        {MOCK_ISSUES.filter(i => i.scopeKey === scope.key).length}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -390,44 +587,56 @@ export default function IssuesPage() {
           </aside>
 
           {/* Main content */}
-          <main className="flex-1 min-w-0 space-y-8">
-            {/* Trending section */}
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <Flame className="w-4 h-4 text-status-hot" />
-                <h2 className="text-sm font-semibold text-foreground">Isu Trending</h2>
-                <span className="text-xs text-muted-foreground ml-1">
-                  · paling banyak didiskusikan minggu ini
-                </span>
-              </div>
-              <div className="grid grid-cols-1 gap-4">
-                {hotIssues.map((issue) => (
-                  <IssueCard key={issue.id} issue={issue} />
-                ))}
-              </div>
-            </section>
-
+          <main className="flex-1 min-w-0">
             {/* All issues */}
             <section>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                  <h2 className="text-sm font-semibold text-foreground">Semua Isu</h2>
+                  <h2 className="text-sm font-semibold text-foreground">
+                    {hasActiveFilters ? "Hasil Pencarian" : "Semua Isu"}
+                  </h2>
+                  <span className="text-xs text-muted-foreground">
+                    ({filteredIssues.length})
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span>Urutkan:</span>
-                  <select className="bg-card border border-border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
-                    <option>Paling Panas</option>
-                    <option>Terbaru</option>
-                    <option>Paling Banyak Partisipan</option>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                    className="bg-card border border-border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="newest">Terbaru</option>
+                    <option value="participants">Paling Banyak Partisipan</option>
+                    <option value="votes">Paling Banyak Vote</option>
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4">
-                {allIssues.map((issue) => (
-                  <IssueCard key={issue.id} issue={issue} />
-                ))}
-              </div>
+              
+              {filteredIssues.length > 0 ? (
+                <div className="grid grid-cols-1 gap-4">
+                  {allFilteredIssues.map((issue) => (
+                    <IssueCard key={issue.id} issue={issue} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-card border border-border rounded-2xl">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-foreground font-medium mb-1">Tidak ada isu ditemukan</p>
+                  <p className="text-sm text-muted-foreground">
+                    Coba ubah filter atau kata kunci pencarian Anda
+                  </p>
+                  <button
+                    onClick={clearFilters}
+                    className="mt-4 text-sm text-primary hover:underline"
+                  >
+                    Hapus filter
+                  </button>
+                </div>
+              )}
             </section>
           </main>
         </div>

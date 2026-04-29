@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
 
 const navLinks = [
   { href: "/issues", label: "Isu" },
-  { href: "/legal", label: "Hukum" },
+  { href: "/forum", label: "Forum" },
+  { href: "/hukum", label: "Hukum" },
   { href: "/news", label: "Berita" },
 ];
 
