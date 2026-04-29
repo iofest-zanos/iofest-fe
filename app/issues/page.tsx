@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { Search, Filter, Flame, Clock, Users, MessageSquare, TrendingUp, ChevronRight } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 
-type IssueStatus = "HOT" | "OPEN" | "PROPOSED" | "FORWARDED" | "ENACTED" | "REJECTED";
+type IssueStatus = "DIAJUKAN" | "SEDANG_DIBAHAS" | "DRAFT" | "PENGESAHAN" | "HASIL";
 type CategoryKey = "DIGITAL_RIGHTS" | "INFRASTRUCTURE" | "PUBLIC_POLICY" | "ENVIRONMENT" | "EDUCATION" | "HEALTH" | "ECONOMY";
 
 interface Issue {
@@ -23,12 +26,11 @@ interface Issue {
 }
 
 const STATUS_CONFIG: Record<IssueStatus, { label: string; cls: string }> = {
-  HOT:       { label: "Trending", cls: "bg-status-hot text-white" },
-  OPEN:      { label: "Diskusi Terbuka", cls: "bg-status-open text-white" },
-  PROPOSED:  { label: "Diajukan", cls: "bg-status-proposed text-white" },
-  FORWARDED: { label: "Diteruskan", cls: "bg-status-forwarded text-white" },
-  ENACTED:   { label: "Menjadi Kebijakan", cls: "bg-status-enacted text-white" },
-  REJECTED:  { label: "Ditolak", cls: "bg-status-rejected text-white" },
+  DIAJUKAN:       { label: "Isu Diajukan", cls: "bg-stage-diajukan text-white" },
+  SEDANG_DIBAHAS: { label: "Sedang Dibahas", cls: "bg-stage-dibahas text-white" },
+  DRAFT:          { label: "Draft Peraturan", cls: "bg-stage-draft text-white" },
+  PENGESAHAN:     { label: "Tahap Pengesahan", cls: "bg-stage-pengesahan text-white" },
+  HASIL:          { label: "Hasil Pengesahan", cls: "bg-stage-hasil-disahkan text-white" },
 };
 
 const CATEGORY_LABELS: Record<CategoryKey, string> = {
@@ -53,7 +55,7 @@ const MOCK_ISSUES: Issue[] = [
     slug: "perlindungan-data-biometrik-uu-pdp",
     title: "Perlindungan Data Biometrik dalam UU PDP",
     description: "UU Pelindungan Data Pribadi No. 27/2022 masih belum memiliki aturan implementasi spesifik untuk data biometrik. Perlu aturan turunan yang mengatur standar perlindungan dan konsekuensi pelanggaran.",
-    status: "HOT",
+    status: "SEDANG_DIBAHAS",
     category: "DIGITAL_RIGHTS",
     scopeLabel: "Nasional",
     author: { name: "Dr. Sari Wijaya", tier: "PAKAR", profession: "Akademisi Hukum" },
@@ -69,7 +71,7 @@ const MOCK_ISSUES: Issue[] = [
     slug: "reformasi-transportasi-umum-dki",
     title: "Reformasi Sistem Transportasi Umum DKI Jakarta",
     description: "Integrasi antara TransJakarta, MRT, LRT, dan KRL belum optimal. Diperlukan sistem tiket terintegrasi dan kebijakan last-mile connectivity yang jelas untuk menekan penggunaan kendaraan pribadi.",
-    status: "OPEN",
+    status: "DRAFT",
     category: "INFRASTRUCTURE",
     scopeLabel: "DKI Jakarta",
     author: { name: "Pak Joko Santoso", tier: "PAKAR", profession: "Peneliti Transportasi" },
@@ -85,7 +87,7 @@ const MOCK_ISSUES: Issue[] = [
     slug: "transparansi-anggaran-pemda",
     title: "Standar Transparansi Anggaran Pemerintah Daerah",
     description: "Banyak APBD daerah tidak dipublikasikan tepat waktu atau dalam format yang dapat dibaca publik. Perlu standar nasional untuk transparansi anggaran yang dapat dimonitor masyarakat sipil.",
-    status: "FORWARDED",
+    status: "PENGESAHAN",
     category: "PUBLIC_POLICY",
     scopeLabel: "Nasional",
     author: { name: "Mbak Lia Rahayu", tier: "PAKAR", profession: "Jurnalis Investigasi" },
@@ -101,7 +103,7 @@ const MOCK_ISSUES: Issue[] = [
     slug: "revisi-uu-penyiaran-konten-digital",
     title: "Revisi UU Penyiaran: Implikasi pada Konten Digital",
     description: "Revisi UU Penyiaran yang sedang dibahas berpotensi memperluas kewenangan KPI ke platform streaming dan YouTube. Perlu deliberasi apakah ini proporsional terhadap kebebasan pers digital.",
-    status: "HOT",
+    status: "SEDANG_DIBAHAS",
     category: "DIGITAL_RIGHTS",
     scopeLabel: "Nasional",
     author: { name: "Ahmad Fauzi, S.H.", tier: "PAKAR", profession: "Pengacara Media" },
@@ -117,7 +119,7 @@ const MOCK_ISSUES: Issue[] = [
     slug: "kebijakan-reklamasi-teluk-jakarta",
     title: "Kebijakan Reklamasi Teluk Jakarta dan Dampak Lingkungan",
     description: "Proyek reklamasi pulau-pulau di Teluk Jakarta memiliki implikasi lingkungan dan sosial yang signifikan bagi nelayan. Perlu kajian komprehensif sebelum kelanjutan proyek.",
-    status: "PROPOSED",
+    status: "DIAJUKAN",
     category: "ENVIRONMENT",
     scopeLabel: "DKI Jakarta",
     author: { name: "Pak Eko Nugroho", tier: "PAKAR", profession: "Aktivis Lingkungan" },
@@ -133,7 +135,7 @@ const MOCK_ISSUES: Issue[] = [
     slug: "standar-upah-minimum-pekerja-platform",
     title: "Standar Upah Minimum untuk Pekerja Ekonomi Platform",
     description: "Pengemudi ojek online, kurir, dan pekerja platform lainnya tidak terlindungi UU Ketenagakerjaan sebagai karyawan. Perlu regulasi yang memastikan perlindungan minimum tanpa mengorbankan fleksibilitas.",
-    status: "OPEN",
+    status: "HASIL",
     category: "ECONOMY",
     scopeLabel: "Nasional",
     author: { name: "Rina Kusuma, M.H.", tier: "PAKAR", profession: "Akademisi Hukum Perburuhan" },
@@ -159,11 +161,11 @@ const CATEGORIES: { key: CategoryKey | "ALL"; label: string }[] = [
 
 const STATUSES: { key: IssueStatus | "ALL"; label: string }[] = [
   { key: "ALL", label: "Semua Status" },
-  { key: "HOT", label: "Trending" },
-  { key: "OPEN", label: "Diskusi Terbuka" },
-  { key: "PROPOSED", label: "Diajukan" },
-  { key: "FORWARDED", label: "Diteruskan" },
-  { key: "ENACTED", label: "Menjadi Kebijakan" },
+  { key: "DIAJUKAN", label: "Isu Diajukan" },
+  { key: "SEDANG_DIBAHAS", label: "Sedang Dibahas" },
+  { key: "DRAFT", label: "Draft Peraturan" },
+  { key: "PENGESAHAN", label: "Tahap Pengesahan" },
+  { key: "HASIL", label: "Hasil Pengesahan" },
 ];
 
 function HeatBar({ score }: { score: number }) {
@@ -258,7 +260,6 @@ function IssueCard({ issue }: { issue: Issue }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <HeatBar score={issue.heatScore} />
           <div className="flex items-center gap-1 text-[0.65rem] text-muted-foreground">
             <Clock className="w-3 h-3" />
             {issue.timeAgo}
@@ -270,8 +271,12 @@ function IssueCard({ issue }: { issue: Issue }) {
 }
 
 export default function IssuesPage() {
-  const hotIssues = MOCK_ISSUES.filter((i) => i.status === "HOT");
-  const allIssues = MOCK_ISSUES;
+  const [selectedStatus, setSelectedStatus] = useState<IssueStatus | "ALL">("ALL");
+
+  const hotIssues = MOCK_ISSUES.filter((i) => i.heatScore >= 0.85);
+  const allIssues = selectedStatus === "ALL"
+    ? MOCK_ISSUES
+    : MOCK_ISSUES.filter((issue) => issue.status === selectedStatus);
 
   return (
     <div className="min-h-screen bg-background">
@@ -319,8 +324,9 @@ export default function IssuesPage() {
                 {STATUSES.map((s) => (
                   <button
                     key={s.key}
+                    onClick={() => setSelectedStatus(s.key)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                      s.key === "ALL"
+                      s.key === selectedStatus
                         ? "bg-primary/10 text-primary font-medium"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                     }`}

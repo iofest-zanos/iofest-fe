@@ -26,6 +26,47 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 
+// ── 5-Stage Lifecycle ──
+
+type StageKey = "DIAJUKAN" | "SEDANG_DIBAHAS" | "DRAFT" | "PENGESAHAN" | "HASIL";
+type HasilOutcome = "DISAHKAN" | "DITOLAK" | "DIREVISI" | null;
+
+interface StageConfig {
+  key: StageKey;
+  step: number;
+  label: string;
+  description: string;
+  colorCls: string;
+  dotCls: string;
+  allowComments: boolean;
+}
+
+const STAGES: StageConfig[] = [
+  { key: "DIAJUKAN", step: 1, label: "Isu Diajukan", description: "Expert atau pemerintah mengajukan isu kebijakan", colorCls: "text-stage-diajukan", dotCls: "bg-stage-diajukan", allowComments: false },
+  { key: "SEDANG_DIBAHAS", step: 2, label: "Sedang Dibahas", description: "Pemerintah membuka pembahasan, netizen bisa memberikan komentar dan pernyataan", colorCls: "text-stage-dibahas", dotCls: "bg-stage-dibahas", allowComments: true },
+  { key: "DRAFT", step: 3, label: "Draft Peraturan", description: "Pemerintah melampirkan draft UU — bisa direvisi, dibatalkan, atau dilanjutkan", colorCls: "text-stage-draft", dotCls: "bg-stage-draft", allowComments: true },
+  { key: "PENGESAHAN", step: 4, label: "Tahap Pengesahan", description: "Proses pengesahan internal — tidak ada komentar publik", colorCls: "text-stage-pengesahan", dotCls: "bg-stage-pengesahan", allowComments: false },
+  { key: "HASIL", step: 5, label: "Hasil Pengesahan", description: "Keputusan akhir: disahkan, ditolak, atau direvisi", colorCls: "text-stage-hasil-disahkan", dotCls: "bg-stage-hasil-disahkan", allowComments: false },
+];
+
+interface TimelineEntry {
+  stageKey: StageKey;
+  date: string;
+  note: string;
+  actor?: string;
+  hasilOutcome?: HasilOutcome;
+}
+
+const ISSUE_TIMELINE: TimelineEntry[] = [
+  { stageKey: "HASIL", date: "", note: "Menunggu hasil pengesahan", actor: "" },
+  { stageKey: "PENGESAHAN", date: "", note: "Belum memasuki tahap pengesahan", actor: "" },
+  { stageKey: "DRAFT", date: "", note: "Belum ada draft peraturan", actor: "" },
+  { stageKey: "SEDANG_DIBAHAS", date: "27 Apr 2026", note: "Dibuka untuk deliberasi publik oleh Komisi I DPR", actor: "Komisi I DPR RI" },
+  { stageKey: "DIAJUKAN", date: "25 Apr 2026", note: "Diajukan oleh Dr. Sari Wijaya sebagai isu kebijakan", actor: "Dr. Sari Wijaya" },
+];
+
+const CURRENT_STAGE: StageKey = "SEDANG_DIBAHAS";
+
 // ── Static mock data ──
 
 const ISSUE = {
@@ -63,6 +104,7 @@ const STANCES = [
     isDivisive: false,
     qualityScore: 0.92,
     timeAgo: "2 jam lalu",
+    stageKey: "SEDANG_DIBAHAS" as StageKey,
   },
   {
     id: 2,
@@ -77,6 +119,7 @@ const STANCES = [
     isDivisive: true,
     qualityScore: 0.85,
     timeAgo: "4 jam lalu",
+    stageKey: "SEDANG_DIBAHAS" as StageKey,
   },
   {
     id: 3,
@@ -91,6 +134,7 @@ const STANCES = [
     isDivisive: true,
     qualityScore: 0.78,
     timeAgo: "6 jam lalu",
+    stageKey: "DIAJUKAN" as StageKey,
   },
   {
     id: 4,
@@ -105,6 +149,7 @@ const STANCES = [
     isDivisive: false,
     qualityScore: 0.94,
     timeAgo: "8 jam lalu",
+    stageKey: "SEDANG_DIBAHAS" as StageKey,
   },
 ];
 
@@ -128,6 +173,96 @@ const STATUS_HISTORY = [
   { status: "OPEN", label: "Diskusi Terbuka", date: "25 Apr 2026", note: "Dibuka untuk deliberasi publik", auto: true },
   { status: "PROPOSED", label: "Diajukan", date: "25 Apr 2026", note: "Diajukan oleh Dr. Sari Wijaya", auto: false },
 ];
+
+// ── IssueTimeline Component ──
+
+function IssueTimeline({ currentStage, timeline }: { currentStage: StageKey; timeline: TimelineEntry[] }) {
+  const currentIdx = STAGES.findIndex((s) => s.key === currentStage);
+
+  return (
+    <div className="space-y-0">
+      {STAGES.map((stage, i) => {
+        const entry = timeline.find((t) => t.stageKey === stage.key);
+        const isCompleted = i < currentIdx;
+        const isCurrent = i === currentIdx;
+        const isFuture = i > currentIdx;
+        const isLast = i === STAGES.length - 1;
+
+        return (
+          <div key={stage.key} className="flex gap-3 relative">
+            {/* Vertical line + dot */}
+            <div className="flex flex-col items-center shrink-0">
+              <div
+                className={`w-3.5 h-3.5 rounded-full border-2 z-10 transition-all ${
+                  isCurrent
+                    ? `${stage.dotCls} border-transparent ring-4 ring-current/15`
+                    : isCompleted
+                    ? `${stage.dotCls} border-transparent`
+                    : "bg-card border-border"
+                }`}
+              />
+              {!isLast && (
+                <div
+                  className={`w-0.5 flex-1 min-h-[3rem] transition-colors ${
+                    isCompleted ? "bg-stage-dibahas/40" : "bg-border"
+                  }`}
+                />
+              )}
+            </div>
+
+            {/* Content */}
+            <div className={`pb-5 ${isLast ? "pb-0" : ""}`}>
+              <p
+                className={`text-xs font-semibold leading-tight ${
+                  isCurrent ? stage.colorCls : isCompleted ? "text-foreground" : "text-muted-foreground/50"
+                }`}
+              >
+                {stage.label}
+                {isCurrent && (
+                  <span className="ml-1.5 inline-flex items-center gap-1 text-[0.55rem] font-black tracking-wider bg-current/10 px-1.5 py-0.5 rounded-full">
+                    SAAT INI
+                  </span>
+                )}
+              </p>
+              {entry && entry.date ? (
+                <>
+                  <p className="text-[0.6rem] text-muted-foreground mt-0.5">{entry.date}</p>
+                  <p className="text-[0.6rem] text-muted-foreground leading-snug">{entry.note}</p>
+                </>
+              ) : (
+                <p className="text-[0.6rem] text-muted-foreground/40 mt-0.5 italic">
+                  {isFuture ? "Belum tercapai" : ""}
+                </p>
+              )}
+              {stage.allowComments && isCurrent && (
+                <p className="text-[0.55rem] text-stage-dibahas mt-1 flex items-center gap-1">
+                  <MessageSquare className="w-2.5 h-2.5" />
+                  Komentar publik terbuka
+                </p>
+              )}
+              {!stage.allowComments && isCurrent && (
+                <p className="text-[0.55rem] text-muted-foreground/60 mt-1 italic">
+                  Komentar publik ditutup
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StageBadge({ stageKey }: { stageKey: StageKey }) {
+  const stage = STAGES.find((s) => s.key === stageKey);
+  if (!stage) return null;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[0.55rem] font-bold tracking-wider px-2 py-0.5 rounded-full ${stage.dotCls}/15 ${stage.colorCls}`}>
+      <span className={`w-1 h-1 rounded-full ${stage.dotCls}`} />
+      Tahap {stage.step}: {stage.label}
+    </span>
+  );
+}
 
 // ── Opinion Map SVG ──
 
@@ -421,6 +556,11 @@ function StanceCard({
         </span>
       </div>
 
+      {/* Stage indicator */}
+      <div className="flex items-center gap-2">
+        <StageBadge stageKey={stance.stageKey} />
+      </div>
+
       {/* Vote results bar */}
       {userVote && (
         <div className="space-y-1.5">
@@ -510,6 +650,7 @@ export default function DeliberationPage() {
               <span className="text-[0.65rem] font-black tracking-[0.1em] uppercase bg-status-hot text-white px-3 py-1 rounded-full">
                 Trending
               </span>
+              <StageBadge stageKey={CURRENT_STAGE} />
               <span className="text-[0.7rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                 {ISSUE.category}
               </span>
@@ -650,53 +791,74 @@ export default function DeliberationPage() {
                     ))}
                   </div>
 
-                  {/* Write stance form */}
-                  <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-accent" />
-                      <p className="text-sm font-semibold text-foreground">
-                        Tulis Pernyataan Baru
-                      </p>
-                      <span className="ml-auto text-[0.65rem] text-muted-foreground">
-                        Hanya untuk Citizen dan Expert
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <textarea
-                        value={stanceText}
-                        onChange={(e) =>
-                          setStanceText(e.target.value.slice(0, 280))
-                        }
-                        placeholder="Tuliskan pernyataan Anda secara singkat dan substantif... (maks. 280 karakter)"
-                        className="w-full min-h-[100px] p-4 text-sm bg-muted/30 border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60 leading-relaxed"
-                      />
-                      <span
-                        className={`absolute bottom-3 right-3 text-[0.65rem] font-mono ${
-                          stanceText.length > 240
-                            ? stanceText.length >= 280
-                              ? "text-status-rejected"
-                              : "text-status-hot"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {stanceText.length}/280
-                      </span>
-                    </div>
-                    {stanceText.length > 20 && (
-                      <div className="flex items-center gap-2 text-xs text-accent bg-accent/8 px-3 py-2 rounded-lg">
-                        <Sparkles className="w-3 h-3" />
-                        AI quality check: <span className="font-medium">Cukup substantif</span>
+                  {/* Write stance form — stage-aware */}
+                  {(() => {
+                    const currentStageConfig = STAGES.find((s) => s.key === CURRENT_STAGE);
+                    if (!currentStageConfig?.allowComments) {
+                      return (
+                        <div className="bg-muted/30 border border-border rounded-2xl p-6 space-y-3 opacity-75">
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                            <p className="text-sm font-semibold text-muted-foreground">
+                              Komentar Ditutup
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            Pernyataan publik tidak dapat diajukan pada tahap <span className="font-medium">{currentStageConfig?.label}</span>. Komentar hanya tersedia pada tahap Sedang Dibahas dan Draft Peraturan.
+                          </p>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-accent" />
+                          <p className="text-sm font-semibold text-foreground">
+                            Tulis Pernyataan Baru
+                          </p>
+                          <StageBadge stageKey={CURRENT_STAGE} />
+                          <span className="ml-auto text-[0.65rem] text-muted-foreground">
+                            Hanya untuk Citizen dan Expert
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <textarea
+                            value={stanceText}
+                            onChange={(e) =>
+                              setStanceText(e.target.value.slice(0, 280))
+                            }
+                            placeholder="Tuliskan pernyataan Anda secara singkat dan substantif... (maks. 280 karakter)"
+                            className="w-full min-h-[100px] p-4 text-sm bg-muted/30 border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60 leading-relaxed"
+                          />
+                          <span
+                            className={`absolute bottom-3 right-3 text-[0.65rem] font-mono ${
+                              stanceText.length > 240
+                                ? stanceText.length >= 280
+                                  ? "text-status-rejected"
+                                  : "text-status-hot"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {stanceText.length}/280
+                          </span>
+                        </div>
+                        {stanceText.length > 20 && (
+                          <div className="flex items-center gap-2 text-xs text-accent bg-accent/8 px-3 py-2 rounded-lg">
+                            <Sparkles className="w-3 h-3" />
+                            AI quality check: <span className="font-medium">Cukup substantif</span>
+                          </div>
+                        )}
+                        <div className="flex justify-end">
+                          <button
+                            disabled={stanceText.length < 20}
+                            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-all hover:shadow-md hover:shadow-primary/20"
+                          >
+                            Posting Pernyataan
+                          </button>
+                        </div>
                       </div>
-                    )}
-                    <div className="flex justify-end">
-                      <button
-                        disabled={stanceText.length < 20}
-                        className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-all hover:shadow-md hover:shadow-primary/20"
-                      >
-                        Posting Pernyataan
-                      </button>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   {/* Bridge statements */}
                   {BRIDGE_STANCES.length > 0 && (
@@ -938,25 +1100,10 @@ export default function DeliberationPage() {
 
             {/* Sidebar */}
             <aside className="space-y-5 sticky top-24">
-              {/* Status lifecycle */}
+              {/* 5-Stage Lifecycle Timeline */}
               <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
-                <p className="text-sm font-semibold text-foreground">Status Isu</p>
-                <div className="space-y-3">
-                  {STATUS_HISTORY.map((item, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-                        i === 0 ? "bg-status-hot" : "bg-border"
-                      }`} />
-                      <div>
-                        <p className={`text-xs font-semibold ${i === 0 ? "text-foreground" : "text-muted-foreground"}`}>
-                          {item.label}
-                        </p>
-                        <p className="text-[0.65rem] text-muted-foreground mt-0.5">{item.date}</p>
-                        <p className="text-[0.65rem] text-muted-foreground">{item.note}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-sm font-semibold text-foreground">Tahapan Isu</p>
+                <IssueTimeline currentStage={CURRENT_STAGE} timeline={ISSUE_TIMELINE} />
               </div>
 
               {/* Quick stats */}
