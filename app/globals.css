@@ -1,26 +1,254 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Core shadcn tokens */
   --color-background: var(--background);
+  --font-fraunces: var(--font-fraunces);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* SuaraKita brand tokens */
+  --color-brand-red: var(--brand-red);
+  --color-brand-red-light: var(--brand-red-light);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-teal-light: var(--brand-teal-light);
+  --color-brand-warm-white: var(--brand-warm-white);
+
+  /* Vote colors */
+  --color-vote-agree: var(--vote-agree);
+  --color-vote-agree-bg: var(--vote-agree-bg);
+  --color-vote-disagree: var(--vote-disagree);
+  --color-vote-disagree-bg: var(--vote-disagree-bg);
+  --color-vote-abstain: var(--vote-abstain);
+  --color-vote-abstain-bg: var(--vote-abstain-bg);
+
+  /* Issue status colors */
+  --color-status-proposed: var(--status-proposed);
+  --color-status-open: var(--status-open);
+  --color-status-hot: var(--status-hot);
+  --color-status-forwarded: var(--status-forwarded);
+  --color-status-legislation: var(--status-legislation);
+  --color-status-enacted: var(--status-enacted);
+  --color-status-rejected: var(--status-rejected);
+
+  /* Cluster colors for opinion map */
+  --color-cluster-0: var(--cluster-0);
+  --color-cluster-1: var(--cluster-1);
+  --color-cluster-2: var(--cluster-2);
+  --color-cluster-3: var(--cluster-3);
+  --color-cluster-4: var(--cluster-4);
+
+  /* 5-Stage lifecycle */
+  --color-stage-diajukan: var(--stage-diajukan);
+  --color-stage-dibahas: var(--stage-dibahas);
+  --color-stage-draft: var(--stage-draft);
+  --color-stage-pengesahan: var(--stage-pengesahan);
+  --color-stage-hasil-disahkan: var(--stage-hasil-disahkan);
+  --color-stage-hasil-ditolak: var(--stage-hasil-ditolak);
+  --color-stage-hasil-direvisi: var(--stage-hasil-direvisi);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* shadcn core — SuaraKita palette */
+  --background: oklch(0.983 0.006 27);        /* #FFF6F6 warm off-white */
+  --foreground: oklch(0.129 0.022 240);        /* #0F172A near-black */
+  --card: oklch(1 0 0);                        /* white card surface */
+  --card-foreground: oklch(0.129 0.022 240);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.129 0.022 240);
+  --primary: oklch(0.487 0.213 27);            /* #DB1A1A brand red */
+  --primary-foreground: oklch(1 0 0);          /* white on red */
+  --secondary: oklch(0.773 0.075 192);         /* #8CC7C4 teal light */
+  --secondary-foreground: oklch(0.129 0.022 240);
+  --muted: oklch(0.96 0.006 27);               /* slightly darker warm white */
+  --muted-foreground: oklch(0.471 0.038 228);  /* #64748B slate */
+  --accent: oklch(0.421 0.082 212);            /* #2C687B teal dark */
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.577 0.245 27);        /* strong red for errors */
+  --border: oklch(0.921 0.012 228);            /* #E2E8F0 */
+  --input: oklch(0.921 0.012 228);
+  --ring: oklch(0.487 0.213 27);               /* red focus ring */
+  --radius: 0.625rem;
+
+  /* Chart/cluster colors */
+  --chart-1: oklch(0.487 0.213 27);            /* red */
+  --chart-2: oklch(0.773 0.075 192);           /* teal light */
+  --chart-3: oklch(0.421 0.082 212);           /* teal dark */
+  --chart-4: oklch(0.65 0.2 45);              /* orange */
+  --chart-5: oklch(0.5 0.18 295);             /* purple */
+
+  /* Sidebar */
+  --sidebar: oklch(0.975 0.006 27);
+  --sidebar-foreground: oklch(0.129 0.022 240);
+  --sidebar-primary: oklch(0.487 0.213 27);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.773 0.075 192);
+  --sidebar-accent-foreground: oklch(0.129 0.022 240);
+  --sidebar-border: oklch(0.921 0.012 228);
+  --sidebar-ring: oklch(0.487 0.213 27);
+
+  /* SuaraKita brand */
+  --brand-red: oklch(0.487 0.213 27);
+  --brand-red-light: oklch(0.95 0.02 27);
+  --brand-teal: oklch(0.421 0.082 212);
+  --brand-teal-light: oklch(0.773 0.075 192);
+  --brand-warm-white: oklch(0.983 0.006 27);
+
+  /* Vote buttons */
+  --vote-agree: oklch(0.421 0.082 212);        /* teal dark */
+  --vote-agree-bg: oklch(0.93 0.03 212);
+  --vote-disagree: oklch(0.487 0.213 27);      /* red */
+  --vote-disagree-bg: oklch(0.95 0.02 27);
+  --vote-abstain: oklch(0.773 0.075 192);      /* teal light */
+  --vote-abstain-bg: oklch(0.95 0.03 192);
+
+  /* Issue status */
+  --status-proposed: oklch(0.647 0.036 228);   /* slate */
+  --status-open: oklch(0.421 0.082 212);       /* teal dark */
+  --status-hot: oklch(0.65 0.2 45);           /* orange */
+  --status-forwarded: oklch(0.5 0.18 295);    /* purple */
+  --status-legislation: oklch(0.45 0.18 255); /* blue */
+  --status-enacted: oklch(0.52 0.15 145);     /* green */
+  --status-rejected: oklch(0.487 0.213 27);   /* red */
+
+  /* 5-Stage lifecycle colors */
+  --stage-diajukan: oklch(0.647 0.036 228);   /* slate/neutral */
+  --stage-dibahas: oklch(0.55 0.18 255);      /* blue */
+  --stage-draft: oklch(0.65 0.2 45);          /* orange */
+  --stage-pengesahan: oklch(0.5 0.18 295);    /* purple */
+  --stage-hasil-disahkan: oklch(0.52 0.15 145); /* green */
+  --stage-hasil-ditolak: oklch(0.487 0.213 27);  /* red */
+  --stage-hasil-direvisi: oklch(0.65 0.2 45);    /* orange */
+
+  /* Opinion map cluster colors */
+  --cluster-0: oklch(0.421 0.082 212);        /* teal dark */
+  --cluster-1: oklch(0.65 0.2 45);           /* orange */
+  --cluster-2: oklch(0.5 0.18 295);          /* purple */
+  --cluster-3: oklch(0.52 0.15 145);         /* green */
+  --cluster-4: oklch(0.6 0.18 330);          /* pink */
+}
+
+.dark {
+  --background: oklch(0.13 0.02 240);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.18 0.02 240);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.18 0.02 240);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.55 0.213 27);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.35 0.07 212);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.22 0.02 240);
+  --muted-foreground: oklch(0.647 0.036 228);
+  --accent: oklch(0.55 0.08 192);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.65 0.22 27);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.55 0.213 27);
+  --sidebar: oklch(0.18 0.02 240);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.55 0.213 27);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.35 0.07 212);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.55 0.213 27);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@layer utilities {
+  .animate-fadeInUp {
+    animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-fadeIn {
+    animation: fadeIn 0.6s ease both;
+  }
+  .animate-slideInRight {
+    animation: slideInRight 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .font-fraunces {
+    font-family: var(--font-fraunces), Georgia, serif;
+  }
 }
