@@ -1,35 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  AlertCircle,
   ArrowLeft,
   Bell,
-  Share2,
-  Users,
-  MessageSquare,
-  Vote,
-  Scale,
-  FileText,
-  Newspaper,
-  ChevronRight,
-  Wifi,
-  ThumbsUp,
-  ThumbsDown,
-  Minus,
-  ExternalLink,
-  Sparkles,
   CheckCircle2,
-  AlertCircle,
+  ChevronRight,
   Clock,
+  ExternalLink,
+  FileText,
   Flag,
+  MessageSquare,
+  Newspaper,
+  Scale,
+  Share2,
+  Sparkles,
+  Users,
+  Vote,
+  Wifi,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
-
-// ── 5-Stage Lifecycle ──
+import {
+  ai,
+  ApiError,
+  deliberation,
+  IssueListItem,
+  issues as issuesApi,
+  news,
+  NewsArticle,
+  Stance,
+  TimelineEntry,
+} from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
 type StageKey = "DIAJUKAN" | "SEDANG_DIBAHAS" | "DRAFT" | "PENGESAHAN" | "HASIL";
-type HasilOutcome = "DISAHKAN" | "DITOLAK" | "DIREVISI" | null;
+type TabId = "pernyataan" | "peta-opini" | "hukum" | "brief" | "berita";
 
 interface StageConfig {
   key: StageKey;
@@ -42,216 +49,20 @@ interface StageConfig {
 }
 
 const STAGES: StageConfig[] = [
-  { key: "DIAJUKAN", step: 1, label: "Isu Diajukan", description: "Expert atau pemerintah mengajukan isu kebijakan", colorCls: "text-stage-diajukan", dotCls: "bg-stage-diajukan", allowComments: false },
-  { key: "SEDANG_DIBAHAS", step: 2, label: "Sedang Dibahas", description: "Pemerintah membuka pembahasan, netizen bisa memberikan komentar dan pernyataan", colorCls: "text-stage-dibahas", dotCls: "bg-stage-dibahas", allowComments: true },
-  { key: "DRAFT", step: 3, label: "Draft Peraturan", description: "Pemerintah melampirkan draft UU — bisa direvisi, dibatalkan, atau dilanjutkan", colorCls: "text-stage-draft", dotCls: "bg-stage-draft", allowComments: true },
-  { key: "PENGESAHAN", step: 4, label: "Tahap Pengesahan", description: "Proses pengesahan internal — tidak ada komentar publik", colorCls: "text-stage-pengesahan", dotCls: "bg-stage-pengesahan", allowComments: false },
-  { key: "HASIL", step: 5, label: "Hasil Pengesahan", description: "Keputusan akhir: disahkan, ditolak, atau direvisi", colorCls: "text-stage-hasil-disahkan", dotCls: "bg-stage-hasil-disahkan", allowComments: false },
+  { key: "DIAJUKAN", step: 1, label: "Isu Diajukan", description: "Expert atau pemerintah mengajukan isu", colorCls: "text-stage-diajukan", dotCls: "bg-stage-diajukan", allowComments: false },
+  { key: "SEDANG_DIBAHAS", step: 2, label: "Sedang Dibahas", description: "Pemerintah membuka pembahasan", colorCls: "text-stage-dibahas", dotCls: "bg-stage-dibahas", allowComments: true },
+  { key: "DRAFT", step: 3, label: "Draft Peraturan", description: "Pemerintah melampirkan draft UU", colorCls: "text-stage-draft", dotCls: "bg-stage-draft", allowComments: true },
+  { key: "PENGESAHAN", step: 4, label: "Tahap Pengesahan", description: "Proses pengesahan internal", colorCls: "text-stage-pengesahan", dotCls: "bg-stage-pengesahan", allowComments: false },
+  { key: "HASIL", step: 5, label: "Hasil Pengesahan", description: "Keputusan akhir", colorCls: "text-stage-hasil-disahkan", dotCls: "bg-stage-hasil-disahkan", allowComments: false },
 ];
 
-interface TimelineEntry {
-  stageKey: StageKey;
-  date: string;
-  note: string;
-  actor?: string;
-  hasilOutcome?: HasilOutcome;
-}
-
-const ISSUE_TIMELINE: TimelineEntry[] = [
-  { stageKey: "HASIL", date: "", note: "Menunggu hasil pengesahan", actor: "" },
-  { stageKey: "PENGESAHAN", date: "", note: "Belum memasuki tahap pengesahan", actor: "" },
-  { stageKey: "DRAFT", date: "", note: "Belum ada draft peraturan", actor: "" },
-  { stageKey: "SEDANG_DIBAHAS", date: "27 Apr 2026", note: "Dibuka untuk deliberasi publik oleh Komisi I DPR", actor: "Komisi I DPR RI" },
-  { stageKey: "DIAJUKAN", date: "25 Apr 2026", note: "Diajukan oleh Dr. Sari Wijaya sebagai isu kebijakan", actor: "Dr. Sari Wijaya" },
+const TABS: { id: TabId; label: string; Icon: React.FC<{ className?: string }> }[] = [
+  { id: "pernyataan", label: "Pernyataan", Icon: MessageSquare },
+  { id: "peta-opini", label: "Peta Opini", Icon: Vote },
+  { id: "hukum", label: "Konteks Hukum", Icon: Scale },
+  { id: "brief", label: "Brief Kebijakan", Icon: FileText },
+  { id: "berita", label: "Berita Terkait", Icon: Newspaper },
 ];
-
-const CURRENT_STAGE: StageKey = "SEDANG_DIBAHAS";
-
-// ── Static mock data ──
-
-const ISSUE = {
-  slug: "perlindungan-data-biometrik-uu-pdp",
-  title: "Perlindungan Data Biometrik dalam UU PDP",
-  description:
-    "UU Pelindungan Data Pribadi No. 27/2022 masih belum memiliki aturan implementasi spesifik untuk data biometrik. Data biometrik—sidik jari, wajah, iris mata—bersifat unik dan permanen. Perlu ada aturan turunan yang mengatur standar perlindungan, kewajiban pengendali data, dan konsekuensi pelanggaran yang proporsional.",
-  status: "HOT" as const,
-  category: "Hak Digital",
-  scope: "Nasional",
-  author: {
-    name: "Dr. Sari Wijaya",
-    tier: "PAKAR" as const,
-    profession: "Akademisi Hukum · Universitas Tarumanagara",
-    initial: "S",
-  },
-  participants: 156,
-  stances: 47,
-  votes: 4231,
-  createdAt: "25 April 2026",
-  tags: ["privasi", "data-pribadi", "UU-PDP", "biometrik"],
-};
-
-const STANCES = [
-  {
-    id: 1,
-    content:
-      "Data biometrik harus mendapat perlindungan tingkat tertinggi karena tidak dapat diganti seperti password.",
-    author: { name: "Dr. Sari Wijaya", tier: "PAKAR" as const, profession: "Akademisi Hukum", initial: "S" },
-    agreeCount: 89,
-    disagreeCount: 12,
-    abstainCount: 8,
-    totalVotes: 109,
-    isBridge: true,
-    isDivisive: false,
-    qualityScore: 0.92,
-    timeAgo: "2 jam lalu",
-    stageKey: "SEDANG_DIBAHAS" as StageKey,
-  },
-  {
-    id: 2,
-    content:
-      "Penegakan UU PDP harus disertai sanksi pidana nyata, bukan hanya denda administratif yang dianggap remeh perusahaan besar.",
-    author: { name: "Pak Joko Santoso", tier: "PAKAR" as const, profession: "Aktivis NGO Anti-Korupsi", initial: "J" },
-    agreeCount: 62,
-    disagreeCount: 41,
-    abstainCount: 15,
-    totalVotes: 118,
-    isBridge: false,
-    isDivisive: true,
-    qualityScore: 0.85,
-    timeAgo: "4 jam lalu",
-    stageKey: "SEDANG_DIBAHAS" as StageKey,
-  },
-  {
-    id: 3,
-    content:
-      "Regulasi yang terlalu ketat terhadap data biometrik justru menghambat inovasi fintech dan healthtech yang bermanfaat bagi masyarakat.",
-    author: { name: "Budi Prakoso, M.M.", tier: "PAKAR" as const, profession: "Peneliti Kebijakan Digital", initial: "B" },
-    agreeCount: 44,
-    disagreeCount: 58,
-    abstainCount: 20,
-    totalVotes: 122,
-    isBridge: false,
-    isDivisive: true,
-    qualityScore: 0.78,
-    timeAgo: "6 jam lalu",
-    stageKey: "DIAJUKAN" as StageKey,
-  },
-  {
-    id: 4,
-    content:
-      "Anak di bawah umur perlu mendapat perlindungan data biometrik yang lebih ketat dibanding orang dewasa.",
-    author: { name: "Mbak Lia Rahayu", tier: "PAKAR" as const, profession: "Jurnalis Investigasi", initial: "L" },
-    agreeCount: 102,
-    disagreeCount: 8,
-    abstainCount: 12,
-    totalVotes: 122,
-    isBridge: true,
-    isDivisive: false,
-    qualityScore: 0.94,
-    timeAgo: "8 jam lalu",
-    stageKey: "SEDANG_DIBAHAS" as StageKey,
-  },
-];
-
-const BRIDGE_STANCES = STANCES.filter((s) => s.isBridge);
-const DIVISIVE_STANCES = STANCES.filter((s) => s.isDivisive);
-
-const LEGAL_REFS = [
-  { id: "uu-27-2022", type: "UU", number: "27/2022", title: "Pelindungan Data Pribadi", relevance: 0.94 },
-  { id: "uu-11-2008", type: "UU", number: "11/2008", title: "Informasi dan Transaksi Elektronik", relevance: 0.78 },
-  { id: "pp-71-2019", type: "PP", number: "71/2019", title: "Penyelenggaraan Sistem dan Transaksi Elektronik", relevance: 0.65 },
-];
-
-const NEWS = [
-  { id: 1, title: "BSSN Minta Aturan Turunan UU PDP Segera Diselesaikan", source: "Kompas", timeAgo: "3 jam lalu" },
-  { id: 2, title: "Kebocoran Data Nasabah BRI Life: Siapa yang Bertanggung Jawab?", source: "Tempo", timeAgo: "1 hari lalu" },
-  { id: 3, title: "DPR Bahas RPP Data Pribadi: Biometrik Jadi Poin Sengketa", source: "Detik", timeAgo: "2 hari lalu" },
-];
-
-const STATUS_HISTORY = [
-  { status: "HOT", label: "Trending", date: "27 Apr 2026", note: "156 partisipan, heat score 0.92", auto: true },
-  { status: "OPEN", label: "Diskusi Terbuka", date: "25 Apr 2026", note: "Dibuka untuk deliberasi publik", auto: true },
-  { status: "PROPOSED", label: "Diajukan", date: "25 Apr 2026", note: "Diajukan oleh Dr. Sari Wijaya", auto: false },
-];
-
-// ── IssueTimeline Component ──
-
-function IssueTimeline({ currentStage, timeline }: { currentStage: StageKey; timeline: TimelineEntry[] }) {
-  const currentIdx = STAGES.findIndex((s) => s.key === currentStage);
-
-  return (
-    <div className="space-y-0">
-      {STAGES.map((stage, i) => {
-        const entry = timeline.find((t) => t.stageKey === stage.key);
-        const isCompleted = i < currentIdx;
-        const isCurrent = i === currentIdx;
-        const isFuture = i > currentIdx;
-        const isLast = i === STAGES.length - 1;
-
-        return (
-          <div key={stage.key} className="flex gap-3 relative">
-            {/* Vertical line + dot */}
-            <div className="flex flex-col items-center shrink-0">
-              <div
-                className={`w-3.5 h-3.5 rounded-full border-2 z-10 transition-all ${
-                  isCurrent
-                    ? `${stage.dotCls} border-transparent ring-4 ring-current/15`
-                    : isCompleted
-                    ? `${stage.dotCls} border-transparent`
-                    : "bg-card border-border"
-                }`}
-              />
-              {!isLast && (
-                <div
-                  className={`w-0.5 flex-1 min-h-[3rem] transition-colors ${
-                    isCompleted ? "bg-stage-dibahas/40" : "bg-border"
-                  }`}
-                />
-              )}
-            </div>
-
-            {/* Content */}
-            <div className={`pb-5 ${isLast ? "pb-0" : ""}`}>
-              <p
-                className={`text-xs font-semibold leading-tight ${
-                  isCurrent ? stage.colorCls : isCompleted ? "text-foreground" : "text-muted-foreground/50"
-                }`}
-              >
-                {stage.label}
-                {isCurrent && (
-                  <span className="ml-1.5 inline-flex items-center gap-1 text-[0.55rem] font-black tracking-wider bg-current/10 px-1.5 py-0.5 rounded-full">
-                    SAAT INI
-                  </span>
-                )}
-              </p>
-              {entry && entry.date ? (
-                <>
-                  <p className="text-[0.6rem] text-muted-foreground mt-0.5">{entry.date}</p>
-                  <p className="text-[0.6rem] text-muted-foreground leading-snug">{entry.note}</p>
-                </>
-              ) : (
-                <p className="text-[0.6rem] text-muted-foreground/40 mt-0.5 italic">
-                  {isFuture ? "Belum tercapai" : ""}
-                </p>
-              )}
-              {stage.allowComments && isCurrent && (
-                <p className="text-[0.55rem] text-stage-dibahas mt-1 flex items-center gap-1">
-                  <MessageSquare className="w-2.5 h-2.5" />
-                  Komentar publik terbuka
-                </p>
-              )}
-              {!stage.allowComments && isCurrent && (
-                <p className="text-[0.55rem] text-muted-foreground/60 mt-1 italic">
-                  Komentar publik ditutup
-                </p>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 function StageBadge({ stageKey }: { stageKey: StageKey }) {
   const stage = STAGES.find((s) => s.key === stageKey);
@@ -264,224 +75,87 @@ function StageBadge({ stageKey }: { stageKey: StageKey }) {
   );
 }
 
-// ── Opinion Map SVG ──
-
-const CLUSTER_A_POINTS: [number, number][] = [
-  [105, 72], [118, 65], [128, 75], [112, 84], [122, 70],
-  [100, 80], [132, 68], [115, 92], [125, 60], [108, 62],
-  [130, 85], [96, 88],
-];
-
-const CLUSTER_B_POINTS: [number, number][] = [
-  [248, 68], [260, 62], [272, 72], [255, 80], [265, 72],
-  [250, 88], [270, 58], [258, 95], [275, 78], [242, 75],
-];
-
-const CLUSTER_C_POINTS: [number, number][] = [
-  [172, 152], [188, 145], [162, 160], [202, 150], [178, 165],
-  [168, 140], [198, 162], [185, 135],
-];
-
-const YOU_POSITION: [number, number] = [258, 95];
-
-function OpinionMap() {
-  const [hoveredCluster, setHoveredCluster] = useState<number | null>(null);
+function IssueTimeline({ currentStage, timeline }: { currentStage: StageKey; timeline: TimelineEntry[] }) {
+  const currentIdx = STAGES.findIndex((s) => s.key === currentStage);
+  const byStage = new Map<string, TimelineEntry>();
+  timeline.forEach((t) => byStage.set(t.stage, t));
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="space-y-0.5">
-          <p className="text-sm font-semibold text-foreground">Peta Opini Real-time</p>
-          <p className="text-xs text-muted-foreground">
-            Posisi {ISSUE.participants} partisipan berdasarkan pola voting mereka
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2.5 py-1.5 rounded-lg">
-          <Wifi className="w-3 h-3 text-status-open" />
-          Live
-        </div>
-      </div>
+    <div className="space-y-0">
+      {STAGES.map((stage, i) => {
+        const entry = byStage.get(stage.key);
+        const isCompleted = i < currentIdx;
+        const isCurrent = i === currentIdx;
+        const isLast = i === STAGES.length - 1;
 
-      {/* SVG Map */}
-      <div className="bg-muted/30 border border-border rounded-2xl overflow-hidden">
-        <svg
-          viewBox="0 0 370 230"
-          className="w-full"
-          style={{ fontFamily: "var(--font-geist-sans)" }}
-        >
-          {/* Grid */}
-          <defs>
-            <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
-              <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.4" strokeOpacity="0.08" />
-            </pattern>
-          </defs>
-          <rect width="370" height="230" fill="url(#grid)" />
-
-          {/* Axis lines */}
-          <line x1="185" y1="10" x2="185" y2="220" stroke="currentColor" strokeWidth="0.5" strokeOpacity="0.12" strokeDasharray="4 4" />
-          <line x1="20" y1="115" x2="350" y2="115" stroke="currentColor" strokeWidth="0.5" strokeOpacity="0.12" strokeDasharray="4 4" />
-
-          {/* Cluster A blobs (teal) */}
-          <ellipse cx="113" cy="77" rx="40" ry="32" fill="var(--color-cluster-0)" fillOpacity="0.08" />
-          {CLUSTER_A_POINTS.map(([x, y], i) => (
-            <circle
-              key={`a-${i}`}
-              cx={x} cy={y} r="4"
-              fill="var(--color-cluster-0)"
-              fillOpacity={hoveredCluster === null || hoveredCluster === 0 ? 0.75 : 0.15}
-              className="transition-all duration-200"
-            />
-          ))}
-          {/* Cluster A label */}
-          <text x="72" y="118" fill="var(--color-cluster-0)" fillOpacity="0.7" fontSize="9" fontWeight="600">
-            Privasi Ketat
-          </text>
-          <text x="72" y="129" fill="var(--color-cluster-0)" fillOpacity="0.5" fontSize="8">
-            67 partisipan
-          </text>
-
-          {/* Cluster B blobs (orange) */}
-          <ellipse cx="258" cy="76" rx="38" ry="30" fill="var(--color-cluster-1)" fillOpacity="0.08" />
-          {CLUSTER_B_POINTS.map(([x, y], i) => (
-            <circle
-              key={`b-${i}`}
-              cx={x} cy={y} r="4"
-              fill="var(--color-cluster-1)"
-              fillOpacity={hoveredCluster === null || hoveredCluster === 1 ? 0.75 : 0.15}
-              className="transition-all duration-200"
-            />
-          ))}
-          {/* Cluster B label */}
-          <text x="235" y="118" fill="var(--color-cluster-1)" fillOpacity="0.7" fontSize="9" fontWeight="600">
-            Pro-Inovasi
-          </text>
-          <text x="235" y="129" fill="var(--color-cluster-1)" fillOpacity="0.5" fontSize="8">
-            54 partisipan
-          </text>
-
-          {/* Cluster C blobs (purple) */}
-          <ellipse cx="183" cy="152" rx="36" ry="24" fill="var(--color-cluster-2)" fillOpacity="0.08" />
-          {CLUSTER_C_POINTS.map(([x, y], i) => (
-            <circle
-              key={`c-${i}`}
-              cx={x} cy={y} r="4"
-              fill="var(--color-cluster-2)"
-              fillOpacity={hoveredCluster === null || hoveredCluster === 2 ? 0.75 : 0.15}
-              className="transition-all duration-200"
-            />
-          ))}
-          {/* Cluster C label */}
-          <text x="158" y="186" fill="var(--color-cluster-2)" fillOpacity="0.7" fontSize="9" fontWeight="600">
-            Moderat
-          </text>
-          <text x="158" y="197" fill="var(--color-cluster-2)" fillOpacity="0.5" fontSize="8">
-            35 partisipan
-          </text>
-
-          {/* YOU marker */}
-          <circle
-            cx={YOU_POSITION[0]} cy={YOU_POSITION[1]}
-            r="7"
-            fill="var(--color-cluster-1)"
-            stroke="white"
-            strokeWidth="2.5"
-          />
-          <text x={YOU_POSITION[0]} y={YOU_POSITION[1] - 12} fill="var(--color-foreground)" fontSize="8" fontWeight="700" textAnchor="middle">
-            ANDA
-          </text>
-        </svg>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-6">
-        {[
-          { cls: "bg-cluster-0", label: "Privasi Ketat", count: 67 },
-          { cls: "bg-cluster-1", label: "Pro-Inovasi", count: 54 },
-          { cls: "bg-cluster-2", label: "Moderat", count: 35 },
-        ].map(({ cls, label, count }) => (
-          <div key={label} className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${cls}`} />
-            <span className="text-xs text-muted-foreground">
-              {label} <span className="font-medium text-foreground">({count})</span>
-            </span>
+        return (
+          <div key={stage.key} className="flex gap-3 relative">
+            <div className="flex flex-col items-center shrink-0">
+              <div
+                className={`w-3.5 h-3.5 rounded-full border-2 z-10 transition-all ${
+                  isCurrent
+                    ? `${stage.dotCls} border-transparent ring-4 ring-current/15`
+                    : isCompleted
+                    ? `${stage.dotCls} border-transparent`
+                    : "bg-card border-border"
+                }`}
+              />
+              {!isLast && (
+                <div className={`w-0.5 flex-1 min-h-[3rem] transition-colors ${isCompleted ? "bg-stage-dibahas/40" : "bg-border"}`} />
+              )}
+            </div>
+            <div className={`pb-5 ${isLast ? "pb-0" : ""}`}>
+              <p className={`text-xs font-semibold leading-tight ${isCurrent ? stage.colorCls : isCompleted ? "text-foreground" : "text-muted-foreground/50"}`}>
+                {stage.label}
+                {isCurrent && (
+                  <span className="ml-1.5 inline-flex items-center gap-1 text-[0.55rem] font-black tracking-wider bg-current/10 px-1.5 py-0.5 rounded-full">
+                    SAAT INI
+                  </span>
+                )}
+              </p>
+              {entry?.created_at ? (
+                <>
+                  <p className="text-[0.6rem] text-muted-foreground mt-0.5">{new Date(entry.created_at).toLocaleDateString("id-ID")}</p>
+                  <p className="text-[0.6rem] text-muted-foreground leading-snug">{entry.note}</p>
+                </>
+              ) : (
+                <p className="text-[0.6rem] text-muted-foreground/40 mt-0.5 italic">Belum tercapai</p>
+              )}
+            </div>
           </div>
-        ))}
-        <div className="ml-auto text-xs text-muted-foreground">
-          Score kohesi: <span className="font-medium text-foreground">0.42</span> (sedang)
-        </div>
-      </div>
-
-      {/* Filter */}
-      <div className="flex items-center gap-2 pt-1">
-        <span className="text-xs text-muted-foreground">Tampilkan:</span>
-        {["Semua", "Hanya Expert", "Hanya Pejabat"].map((f, i) => (
-          <button
-            key={f}
-            className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
-              i === 0
-                ? "bg-primary/10 text-primary font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
-
-// ── Tabs ──
-
-type TabId = "pernyataan" | "peta-opini" | "hukum" | "brief" | "berita";
-
-const TABS: { id: TabId; label: string; Icon: React.FC<{ className?: string }> }[] = [
-  { id: "pernyataan", label: "Pernyataan", Icon: MessageSquare },
-  { id: "peta-opini", label: "Peta Opini", Icon: Vote },
-  { id: "hukum", label: "Konteks Hukum", Icon: Scale },
-  { id: "brief", label: "Brief Kebijakan", Icon: FileText },
-  { id: "berita", label: "Berita Terkait", Icon: Newspaper },
-];
-
-// ── Sub-components ──
 
 function VoteButton({
   label,
   type,
   active,
-  count,
   onClick,
+  disabled,
 }: {
   label: string;
   type: "agree" | "abstain" | "disagree";
   active: boolean;
-  count: number;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   const styles = {
-    agree: {
-      idle: "bg-vote-agree-bg text-vote-agree hover:bg-vote-agree hover:text-white",
-      active: "bg-vote-agree text-white",
-    },
-    abstain: {
-      idle: "bg-vote-abstain-bg text-vote-abstain hover:bg-vote-abstain hover:text-foreground",
-      active: "bg-vote-abstain text-foreground",
-    },
-    disagree: {
-      idle: "bg-vote-disagree-bg text-vote-disagree hover:bg-vote-disagree hover:text-white",
-      active: "bg-vote-disagree text-white",
-    },
+    agree: { idle: "bg-vote-agree-bg text-vote-agree hover:bg-vote-agree hover:text-white", active: "bg-vote-agree text-white" },
+    abstain: { idle: "bg-vote-abstain-bg text-vote-abstain hover:bg-vote-abstain hover:text-foreground", active: "bg-vote-abstain text-foreground" },
+    disagree: { idle: "bg-vote-disagree-bg text-vote-disagree hover:bg-vote-disagree hover:text-white", active: "bg-vote-disagree text-white" },
   };
-
   return (
     <button
       onClick={onClick}
-      className={`flex-1 py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 ${
+      disabled={disabled}
+      className={`flex-1 py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
         active ? styles[type].active : styles[type].idle
       }`}
     >
       {label}
-      {active && <span className="ml-1 text-xs opacity-75">({count})</span>}
     </button>
   );
 }
@@ -489,20 +163,20 @@ function VoteButton({
 function StanceCard({
   stance,
   onVote,
-  userVote,
+  authed,
 }: {
-  stance: (typeof STANCES)[0];
-  onVote: (value: "agree" | "abstain" | "disagree" | null) => void;
-  userVote: "agree" | "abstain" | "disagree" | null;
+  stance: Stance;
+  onVote: (value: "agree" | "abstain" | "disagree") => void;
+  authed: boolean;
 }) {
-  const totalVotes = stance.agreeCount + stance.disagreeCount + stance.abstainCount;
-  const agreePercent = Math.round((stance.agreeCount / totalVotes) * 100);
-  const disagreePercent = Math.round((stance.disagreeCount / totalVotes) * 100);
+  const total = stance.totalVotes || 1;
+  const agreePct = Math.round((stance.agreeCount / total) * 100);
+  const disagreePct = Math.round((stance.disagreeCount / total) * 100);
   const tier = stance.author.tier;
+  const userVote = stance.userVote;
 
   return (
     <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-      {/* Badge row */}
       <div className="flex items-center gap-2">
         {stance.isBridge && (
           <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full">
@@ -516,19 +190,15 @@ function StanceCard({
             DIVISIF
           </span>
         )}
-        <span className="ml-auto text-[0.65rem] text-muted-foreground">
-          Kualitas AI:{" "}
-          <span className="font-medium text-foreground">
-            {Math.round(stance.qualityScore * 100)}%
+        {stance.qualityScore !== null && stance.qualityScore !== undefined && (
+          <span className="ml-auto text-[0.65rem] text-muted-foreground">
+            Relevansi: <span className="font-medium text-foreground">{Math.round(stance.qualityScore * 100)}%</span>
           </span>
-        </span>
+        )}
       </div>
 
-      {/* Content */}
       <div className="flex items-start gap-4">
-        <p className="flex-1 text-[1rem] text-foreground font-medium leading-relaxed">
-          &ldquo;{stance.content}&rdquo;
-        </p>
+        <p className="flex-1 text-[1rem] text-foreground font-medium leading-relaxed">&ldquo;{stance.content}&rdquo;</p>
         <span
           className={`shrink-0 text-[0.6rem] font-black tracking-wider px-2 py-1 rounded-full ${
             tier === "PAKAR"
@@ -542,7 +212,6 @@ function StanceCard({
         </span>
       </div>
 
-      {/* Author */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <div className="w-7 h-7 rounded-full bg-accent/15 flex items-center justify-center text-[0.7rem] font-bold text-accent">
           {stance.author.initial}
@@ -556,86 +225,486 @@ function StanceCard({
         </span>
       </div>
 
-      {/* Stage indicator */}
-      <div className="flex items-center gap-2">
-        <StageBadge stageKey={stance.stageKey} />
-      </div>
+      {stance.stageKey && (
+        <div className="flex items-center gap-2">
+          <StageBadge stageKey={stance.stageKey as StageKey} />
+        </div>
+      )}
 
-      {/* Vote results bar */}
       {userVote && (
         <div className="space-y-1.5">
           <div className="h-2 bg-muted rounded-full overflow-hidden flex">
-            <div
-              className="h-full bg-vote-agree rounded-l-full"
-              style={{ width: `${agreePercent}%` }}
-            />
-            <div
-              className="h-full bg-vote-disagree rounded-r-full"
-              style={{ width: `${disagreePercent}%` }}
-            />
+            <div className="h-full bg-vote-agree rounded-l-full" style={{ width: `${agreePct}%` }} />
+            <div className="h-full bg-vote-disagree rounded-r-full" style={{ width: `${disagreePct}%` }} />
           </div>
           <div className="flex justify-between text-[0.65rem] text-muted-foreground">
-            <span className="text-vote-agree font-medium">{agreePercent}% setuju ({stance.agreeCount})</span>
-            <span className="text-vote-disagree font-medium">{disagreePercent}% tidak setuju ({stance.disagreeCount})</span>
+            <span className="text-vote-agree font-medium">{agreePct}% setuju ({stance.agreeCount})</span>
+            <span className="text-vote-disagree font-medium">{disagreePct}% tidak setuju ({stance.disagreeCount})</span>
           </div>
         </div>
       )}
 
-      {/* Vote buttons */}
       <div className="flex gap-2">
-        <VoteButton
-          label="Tidak Setuju"
-          type="disagree"
-          active={userVote === "disagree"}
-          count={stance.disagreeCount}
-          onClick={() => onVote(userVote === "disagree" ? null : "disagree")}
-        />
-        <VoteButton
-          label="Abstain"
-          type="abstain"
-          active={userVote === "abstain"}
-          count={stance.abstainCount}
-          onClick={() => onVote(userVote === "abstain" ? null : "abstain")}
-        />
-        <VoteButton
-          label="Setuju"
-          type="agree"
-          active={userVote === "agree"}
-          count={stance.agreeCount}
-          onClick={() => onVote(userVote === "agree" ? null : "agree")}
-        />
+        <VoteButton label="Tidak Setuju" type="disagree" active={userVote === "disagree"} onClick={() => onVote("disagree")} disabled={!authed} />
+        <VoteButton label="Abstain" type="abstain" active={userVote === "abstain"} onClick={() => onVote("abstain")} disabled={!authed} />
+        <VoteButton label="Setuju" type="agree" active={userVote === "agree"} onClick={() => onVote("agree")} disabled={!authed} />
+      </div>
+      {!authed && <p className="text-[0.65rem] text-muted-foreground italic">Masuk untuk memberikan suara.</p>}
+    </div>
+  );
+}
+
+function OpinionMap({ slug }: { slug: string }) {
+  const [data, setData] = useState<Awaited<ReturnType<typeof deliberation.clusters>> | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    deliberation
+      .clusters(slug, true)
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  if (loading) return <div className="h-64 bg-card border border-border rounded-2xl animate-pulse" />;
+  if (!data) return <p className="text-sm text-muted-foreground">Peta opini belum tersedia.</p>;
+  if (!data.points.length) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-8 text-center text-sm text-muted-foreground">
+        {data.note ?? "Belum cukup partisipan untuk membentuk peta opini."}
+      </div>
+    );
+  }
+
+  const xs = data.points.map((p) => p.x);
+  const ys = data.points.map((p) => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const padX = (maxX - minX || 1) * 0.1;
+  const padY = (maxY - minY || 1) * 0.1;
+  const width = 600;
+  const height = 320;
+  const project = (x: number, y: number) => {
+    const fx = (x - minX + padX) / (maxX - minX + 2 * padX || 1);
+    const fy = (y - minY + padY) / (maxY - minY + 2 * padY || 1);
+    return { cx: fx * width, cy: height - fy * height };
+  };
+
+  const clusterColors = ["var(--color-cluster-0)", "var(--color-cluster-1)", "var(--color-cluster-2)", "#7c3aed", "#0ea5e9"];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="space-y-0.5">
+          <p className="text-sm font-semibold text-foreground">Peta Opini Real-time</p>
+          <p className="text-xs text-muted-foreground">
+            Posisi {data.total_participants} partisipan berdasarkan pola voting (PCA + KMeans).
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2.5 py-1.5 rounded-lg">
+          <Wifi className="w-3 h-3 text-status-open" />
+          Live
+        </div>
+      </div>
+
+      <div className="bg-muted/30 border border-border rounded-2xl overflow-hidden">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
+          <defs>
+            <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+              <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.4" strokeOpacity="0.08" />
+            </pattern>
+          </defs>
+          <rect width={width} height={height} fill="url(#grid)" />
+          {data.points.map((p) => {
+            const { cx, cy } = project(p.x, p.y);
+            return <circle key={p.user_id} cx={cx} cy={cy} r="5" fill={clusterColors[p.cluster % clusterColors.length]} fillOpacity="0.75" />;
+          })}
+          {data.clusters.map((c) => {
+            const { cx, cy } = project(c.centroid[0], c.centroid[1]);
+            return (
+              <text key={c.id} x={cx} y={cy} fill={clusterColors[c.id % clusterColors.length]} fontSize="11" fontWeight="700" textAnchor="middle">
+                {c.label} · {c.size}
+              </text>
+            );
+          })}
+        </svg>
+      </div>
+
+      <div className="flex items-center gap-6 flex-wrap">
+        {data.clusters.map((c) => (
+          <div key={c.id} className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: clusterColors[c.id % clusterColors.length] }} />
+            <span className="text-xs text-muted-foreground">
+              {c.label} <span className="font-medium text-foreground">({c.size})</span>
+            </span>
+          </div>
+        ))}
+        <div className="ml-auto text-xs text-muted-foreground">
+          Score kohesi: <span className="font-medium text-foreground">{data.cohesion.toFixed(2)}</span>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Main page ──
+function PolicyBriefTab({ slug }: { slug: string }) {
+  type Brief = Awaited<ReturnType<typeof deliberation.brief>>;
+  const [brief, setBrief] = useState<Brief | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [regenerating, setRegenerating] = useState(false);
 
-export default function DeliberationPage() {
+  const load = useCallback(
+    async (regen = false) => {
+      try {
+        const data = await deliberation.brief(slug, regen);
+        setBrief(data);
+      } catch (e) {
+        if (!(e instanceof ApiError) || e.status !== 404) throw e;
+      } finally {
+        setLoading(false);
+        setRegenerating(false);
+      }
+    },
+    [slug],
+  );
+
+  useEffect(() => {
+    void load(false);
+  }, [load]);
+
+  if (loading) return <div className="h-64 bg-card border border-border rounded-2xl animate-pulse" />;
+
+  if (!brief) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-8 text-center space-y-3">
+        <p className="text-sm text-muted-foreground">Belum ada brief kebijakan untuk isu ini.</p>
+        <button
+          onClick={() => {
+            setRegenerating(true);
+            void load(true);
+          }}
+          disabled={regenerating}
+          className="text-sm bg-primary text-primary-foreground px-4 py-2 rounded-xl"
+        >
+          {regenerating ? "Memproses..." : "Generate Brief"}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-accent" />
+          <p className="text-xs text-muted-foreground">
+            Generator: <span className="font-medium text-foreground">{brief.generated_by}</span> · v{brief.version}
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setRegenerating(true);
+            void load(true);
+          }}
+          disabled={regenerating}
+          className="text-xs text-primary hover:underline"
+        >
+          {regenerating ? "Memproses..." : "Regenerate"}
+        </button>
+      </div>
+      <div className="bg-card border border-border rounded-2xl p-8 space-y-6">
+        <div className="space-y-2">
+          <p className="text-[0.7rem] font-bold tracking-[0.1em] uppercase text-muted-foreground">Ringkasan Eksekutif</p>
+          <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{brief.summary}</p>
+        </div>
+        {brief.consensus.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-[0.7rem] font-bold tracking-[0.1em] uppercase text-muted-foreground">Titik Konsensus</p>
+            {brief.consensus.map((c, i) => (
+              <div key={i} className="flex items-start gap-3 text-sm">
+                <CheckCircle2 className="w-4 h-4 text-status-enacted mt-0.5 shrink-0" />
+                <p className="text-foreground flex-1">{c.text}</p>
+                <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">{c.agree_pct}% setuju</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {brief.recommendations.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[0.7rem] font-bold tracking-[0.1em] uppercase text-muted-foreground">Rekomendasi Kebijakan</p>
+            <ol className="space-y-2">
+              {brief.recommendations.map((rec, i) => (
+                <li key={i} className="flex items-start gap-3 text-sm text-foreground">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-[0.65rem] font-bold flex items-center justify-center mt-0.5">
+                    {i + 1}
+                  </span>
+                  {rec}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RelatedNewsTab({ query }: { query: string }) {
+  const [articles, setArticles] = useState<NewsArticle[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setArticles(null);
+    setError(null);
+    news
+      .search(query, 8)
+      .then((items) => setArticles(items))
+      .catch((e) => setError(e instanceof Error ? e.message : "Gagal memuat berita."));
+  }, [query]);
+
+  if (error) {
+    return <p className="text-sm text-status-rejected">{error}</p>;
+  }
+  if (articles === null) {
+    return (
+      <div className="space-y-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-20 bg-card border border-border rounded-2xl animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+  if (!articles.length) {
+    return (
+      <p className="text-sm text-muted-foreground italic">
+        Tidak ada berita relevan. Pastikan NEXT_PUBLIC_NEWS_API_KEY sudah diisi di .env.local.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+        <Sparkles className="w-3.5 h-3.5 text-accent" />
+        Berita terkait via NewsAPI · query: "{query}"
+      </p>
+      {articles.map((article) => (
+        <a
+          key={article.id}
+          href={article.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-card border border-border rounded-2xl p-5 hover:border-accent/25 transition-all group flex items-start gap-4"
+        >
+          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+            <Newspaper className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-foreground text-sm leading-snug group-hover:text-primary transition-colors">
+              {article.title}
+            </p>
+            {article.description && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{article.description}</p>
+            )}
+            <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+              <span className="font-medium">{article.source}</span>
+              {article.publishedAt && (
+                <>
+                  <span>·</span>
+                  <span>{new Date(article.publishedAt).toLocaleDateString("id-ID")}</span>
+                </>
+              )}
+            </div>
+          </div>
+          <ExternalLink className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors shrink-0" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function LegalContextTab({ slug }: { slug: string }) {
+  const [laws, setLaws] = useState<Awaited<ReturnType<typeof ai.legalContext>>["laws"] | null>(null);
+  useEffect(() => {
+    ai.legalContext(slug)
+      .then((d) => setLaws(d.laws))
+      .catch(() => setLaws([]));
+  }, [slug]);
+
+  if (laws === null) return <div className="h-32 bg-card border border-border rounded-2xl animate-pulse" />;
+  if (!laws.length) return <p className="text-sm text-muted-foreground">Belum ada peraturan relevan yang ditemukan.</p>;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles className="w-4 h-4 text-accent" />
+        <p className="text-sm text-muted-foreground">
+          Regulasi relevan ditemukan via keyword overlap (stub). Aktifkan RAG dengan GEMINI_API_KEY.
+        </p>
+      </div>
+      {laws.map((ref) => (
+        <a
+          key={ref.id}
+          href={ref.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-card border border-border rounded-2xl p-5 hover:border-accent/25 transition-all flex items-start gap-4"
+        >
+          <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+            <Scale className="w-5 h-5 text-accent" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[0.65rem] font-bold bg-muted text-muted-foreground px-2 py-0.5 rounded">
+                {ref.type} {ref.number}
+              </span>
+              <span className="text-[0.65rem] text-accent bg-accent/10 px-2 py-0.5 rounded-full font-medium">
+                Relevansi {Math.round(ref.relevance * 100)}%
+              </span>
+            </div>
+            <p className="font-medium text-foreground text-sm">{ref.title}</p>
+            <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden w-24">
+              <div className="h-full bg-accent rounded-full" style={{ width: `${ref.relevance * 100}%` }} />
+            </div>
+          </div>
+          <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default function DeliberationPage({ params }: PageProps) {
+  const { slug } = use(params);
+  const { user } = useAuth();
+  const [issue, setIssue] = useState<(IssueListItem & { timeline: TimelineEntry[] }) | null>(null);
+  const [stances, setStances] = useState<Stance[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("pernyataan");
-  const [votes, setVotes] = useState<Record<number, "agree" | "abstain" | "disagree" | null>>({});
   const [stanceText, setStanceText] = useState("");
+  const [posting, setPosting] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [stanceSort, setStanceSort] = useState<"newest" | "quality" | "bridge" | "votes">("newest");
 
-  const votedCount = Object.values(votes).filter((v) => v !== null).length;
-  const progress = (votedCount / ISSUE.stances) * 100;
+  const refreshStances = useCallback(async () => {
+    const list = await deliberation.stances(slug, stanceSort);
+    setStances(list);
+  }, [slug, stanceSort]);
 
-  function handleVote(stanceId: number, value: "agree" | "abstain" | "disagree" | null) {
-    setVotes((prev) => ({ ...prev, [stanceId]: value }));
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([issuesApi.detail(slug), deliberation.stances(slug, stanceSort)])
+      .then(([d, s]) => {
+        setIssue(d);
+        setStances(s);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Gagal memuat isu."))
+      .finally(() => setLoading(false));
+  }, [slug, stanceSort]);
+
+  const currentStage = (issue?.status as StageKey) ?? "DIAJUKAN";
+  const stageConfig = STAGES.find((s) => s.key === currentStage);
+
+  const bridges = useMemo(() => stances.filter((s) => s.isBridge), [stances]);
+  const divisives = useMemo(() => stances.filter((s) => s.isDivisive), [stances]);
+  const votedCount = stances.filter((s) => s.userVote !== null).length;
+  const progress = stances.length ? (votedCount / stances.length) * 100 : 0;
+
+  async function handleVote(stanceId: number, value: "agree" | "abstain" | "disagree") {
+    const target = stances.find((s) => s.id === stanceId);
+    if (!target) return;
+    const current = target.userVote;
+    const isToggleOff = current === value;
+    const next = isToggleOff ? "clear" : value;
+
+    // Optimistic update — adjust counts immediately so the user can't double-click.
+    setStances((prev) =>
+      prev.map((s) => {
+        if (s.id !== stanceId) return s;
+        const counts = { agree: s.agreeCount, abstain: s.abstainCount, disagree: s.disagreeCount };
+        if (current) counts[current] = Math.max(0, counts[current] - 1);
+        if (!isToggleOff) counts[value] += 1;
+        return {
+          ...s,
+          userVote: isToggleOff ? null : value,
+          agreeCount: counts.agree,
+          abstainCount: counts.abstain,
+          disagreeCount: counts.disagree,
+          totalVotes: counts.agree + counts.abstain + counts.disagree,
+        };
+      }),
+    );
+
+    try {
+      await deliberation.vote(slug, stanceId, next);
+      // Don't refresh immediately; the server now matches our optimistic state.
+    } catch (e) {
+      console.error(e);
+      // Rollback on error.
+      void refreshStances();
+    }
+  }
+
+  async function handlePostStance() {
+    if (stanceText.length < 20) return;
+    setPosting(true);
+    try {
+      await deliberation.postStance(slug, stanceText);
+      setStanceText("");
+      await refreshStances();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  async function handleSubscribe() {
+    if (!issue || !user) return;
+    try {
+      const r = await issuesApi.subscribe(slug, !subscribed);
+      setSubscribed(r.subscribed);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-24 max-w-7xl mx-auto px-6">
+          <div className="h-64 bg-card border border-border rounded-2xl animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+  if (error || !issue) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-24 max-w-7xl mx-auto px-6 text-center">
+          <p className="text-status-rejected">{error ?? "Isu tidak ditemukan."}</p>
+          <Link href="/issues" className="text-sm text-primary hover:underline">
+            Kembali ke daftar isu
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-
       <div className="pt-16">
-        {/* Breadcrumb */}
         <div className="border-b border-border">
           <div className="max-w-7xl mx-auto px-6 py-3">
-            <Link
-              href="/issues"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <Link href="/issues" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="w-3.5 h-3.5" />
               Kembali ke Daftar Isu
             </Link>
@@ -643,27 +712,24 @@ export default function DeliberationPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-          {/* Issue header */}
           <div className="bg-card border border-border rounded-2xl p-8 space-y-5">
-            {/* Status badges */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[0.65rem] font-black tracking-[0.1em] uppercase bg-status-hot text-white px-3 py-1 rounded-full">
-                Trending
-              </span>
-              <StageBadge stageKey={CURRENT_STAGE} />
-              <span className="text-[0.7rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                {ISSUE.category}
-              </span>
-              <span className="text-[0.7rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                {ISSUE.scope}
-              </span>
+              {issue.is_trending && (
+                <span className="text-[0.65rem] font-black tracking-[0.1em] uppercase bg-status-hot text-white px-3 py-1 rounded-full">
+                  Trending
+                </span>
+              )}
+              <StageBadge stageKey={currentStage} />
+              <span className="text-[0.7rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">{issue.category}</span>
+              <span className="text-[0.7rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">{issue.scopeLabel}</span>
               <div className="ml-auto flex items-center gap-2">
                 <button
-                  onClick={() => setSubscribed(!subscribed)}
-                  className={`inline-flex items-center gap-2 text-sm px-4 py-2 rounded-xl border font-medium transition-all ${
+                  onClick={handleSubscribe}
+                  disabled={!user}
+                  className={`inline-flex items-center gap-2 text-sm px-4 py-2 rounded-xl border font-medium transition-all disabled:opacity-50 ${
                     subscribed
                       ? "bg-primary/10 border-primary/25 text-primary"
-                      : "border-border text-muted-foreground hover:border-border hover:text-foreground hover:bg-muted/50"
+                      : "border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
                   <Bell className="w-3.5 h-3.5" />
@@ -676,62 +742,52 @@ export default function DeliberationPage() {
               </div>
             </div>
 
-            {/* Title */}
-            <h1 className="font-fraunces text-[2rem] font-bold text-foreground leading-tight">
-              {ISSUE.title}
-            </h1>
+            <h1 className="font-fraunces text-[2rem] font-bold text-foreground leading-tight">{issue.title}</h1>
+            <p className="text-muted-foreground leading-relaxed">{issue.description}</p>
 
-            {/* Description */}
-            <p className="text-muted-foreground leading-relaxed">{ISSUE.description}</p>
-
-            {/* Author + stats */}
             <div className="flex items-center gap-6 pt-2 border-t border-border">
               <div className="flex items-center gap-2 text-sm">
                 <div className="w-8 h-8 rounded-full bg-accent/15 flex items-center justify-center text-sm font-bold text-accent">
-                  {ISSUE.author.initial}
+                  {issue.author.initial}
                 </div>
                 <div>
-                  <span className="font-medium text-foreground">{ISSUE.author.name}</span>
-                  <span className="text-muted-foreground"> · {ISSUE.author.profession}</span>
+                  <span className="font-medium text-foreground">{issue.author.name}</span>
+                  <span className="text-muted-foreground"> · {issue.author.profession}</span>
                 </div>
                 <span className="text-[0.6rem] font-black tracking-wider bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
-                  {ISSUE.author.tier}
+                  {issue.author.tier}
                 </span>
               </div>
               <div className="flex items-center gap-5 ml-auto text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5" />
-                  <span className="font-medium text-foreground">{ISSUE.participants}</span>
+                  <span className="font-medium text-foreground">{issue.participants}</span>
                   <span>partisipan</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <MessageSquare className="w-3.5 h-3.5" />
-                  <span className="font-medium text-foreground">{ISSUE.stances}</span>
+                  <span className="font-medium text-foreground">{issue.stances}</span>
                   <span>pernyataan</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Vote className="w-3.5 h-3.5" />
-                  <span className="font-medium text-foreground">{ISSUE.votes.toLocaleString()}</span>
+                  <span className="font-medium text-foreground">{issue.votes.toLocaleString()}</span>
                   <span>vote</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{ISSUE.createdAt}</span>
                 </div>
               </div>
             </div>
 
-            {/* Tags */}
-            <div className="flex flex-wrap gap-1.5">
-              {ISSUE.tags.map((tag) => (
-                <span key={tag} className="text-[0.65rem] text-accent/70 bg-accent/8 px-2.5 py-0.5 rounded-full font-medium">
-                  #{tag}
-                </span>
-              ))}
-            </div>
+            {issue.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {issue.tags.map((tag) => (
+                  <span key={tag} className="text-[0.65rem] text-accent/70 bg-accent/8 px-2.5 py-0.5 rounded-full font-medium">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Tab navigation */}
           <div className="border-b border-border">
             <div className="flex items-center gap-1 -mb-px overflow-x-auto">
               {TABS.map(({ id, label, Icon }) => (
@@ -739,9 +795,7 @@ export default function DeliberationPage() {
                   key={id}
                   onClick={() => setActiveTab(id)}
                   className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
-                    activeTab === id
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
+                    activeTab === id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -751,370 +805,160 @@ export default function DeliberationPage() {
             </div>
           </div>
 
-          {/* Tab content */}
           <div className="grid grid-cols-[1fr_300px] gap-8 items-start">
-            {/* Main content */}
             <div>
               {activeTab === "pernyataan" && (
                 <div className="space-y-6">
-                  {/* Progress bar */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Progress menilai pernyataan</span>
                       <span className="font-medium text-foreground">
-                        {votedCount} / {ISSUE.stances} pernyataan dinilai
+                        {votedCount} / {stances.length} pernyataan dinilai
                       </span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-accent rounded-full transition-all duration-500"
-                        style={{ width: `${progress}%` }}
-                      />
+                      <div className="h-full bg-accent rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
                     </div>
-                    {votedCount >= 7 && (
-                      <p className="text-xs text-accent flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Anda sudah masuk dalam peta opini!
-                      </p>
-                    )}
                   </div>
 
-                  {/* Stance cards */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      {stances.length} pernyataan
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Urutkan:</span>
+                      <select
+                        value={stanceSort}
+                        onChange={(e) => setStanceSort(e.target.value as typeof stanceSort)}
+                        className="bg-card border border-border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                      >
+                        <option value="quality">Relevansi AI</option>
+                        <option value="newest">Terbaru</option>
+                        <option value="bridge">Bridge dulu</option>
+                        <option value="votes">Paling banyak vote</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="space-y-4">
-                    {STANCES.map((stance) => (
-                      <StanceCard
-                        key={stance.id}
-                        stance={stance}
-                        userVote={votes[stance.id] ?? null}
-                        onVote={(value) => handleVote(stance.id, value)}
-                      />
+                    {stances.length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">Belum ada pernyataan untuk isu ini.</p>
+                    )}
+                    {stances.map((s) => (
+                      <StanceCard key={s.id} stance={s} onVote={(v) => handleVote(s.id, v)} authed={!!user} />
                     ))}
                   </div>
 
-                  {/* Write stance form — stage-aware */}
-                  {(() => {
-                    const currentStageConfig = STAGES.find((s) => s.key === CURRENT_STAGE);
-                    if (!currentStageConfig?.allowComments) {
-                      return (
-                        <div className="bg-muted/30 border border-border rounded-2xl p-6 space-y-3 opacity-75">
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 text-muted-foreground" />
-                            <p className="text-sm font-semibold text-muted-foreground">
-                              Komentar Ditutup
-                            </p>
-                          </div>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            Pernyataan publik tidak dapat diajukan pada tahap <span className="font-medium">{currentStageConfig?.label}</span>. Komentar hanya tersedia pada tahap Sedang Dibahas dan Draft Peraturan.
-                          </p>
-                        </div>
-                      );
-                    }
-                    return (
-                      <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-accent" />
-                          <p className="text-sm font-semibold text-foreground">
-                            Tulis Pernyataan Baru
-                          </p>
-                          <StageBadge stageKey={CURRENT_STAGE} />
-                          <span className="ml-auto text-[0.65rem] text-muted-foreground">
-                            Hanya untuk Citizen dan Expert
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <textarea
-                            value={stanceText}
-                            onChange={(e) =>
-                              setStanceText(e.target.value.slice(0, 280))
-                            }
-                            placeholder="Tuliskan pernyataan Anda secara singkat dan substantif... (maks. 280 karakter)"
-                            className="w-full min-h-[100px] p-4 text-sm bg-muted/30 border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60 leading-relaxed"
-                          />
-                          <span
-                            className={`absolute bottom-3 right-3 text-[0.65rem] font-mono ${
-                              stanceText.length > 240
-                                ? stanceText.length >= 280
-                                  ? "text-status-rejected"
-                                  : "text-status-hot"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {stanceText.length}/280
-                          </span>
-                        </div>
-                        {stanceText.length > 20 && (
-                          <div className="flex items-center gap-2 text-xs text-accent bg-accent/8 px-3 py-2 rounded-lg">
-                            <Sparkles className="w-3 h-3" />
-                            AI quality check: <span className="font-medium">Cukup substantif</span>
-                          </div>
-                        )}
-                        <div className="flex justify-end">
-                          <button
-                            disabled={stanceText.length < 20}
-                            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-all hover:shadow-md hover:shadow-primary/20"
-                          >
-                            Posting Pernyataan
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Bridge statements */}
-                  {BRIDGE_STANCES.length > 0 && (
-                    <div className="space-y-3">
+                  {stageConfig?.allowComments && user && user.tier === "PEJABAT" && (
+                    <div className="bg-muted/30 border border-border rounded-2xl p-6 space-y-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-primary" />
-                        <p className="text-sm font-semibold text-foreground">
-                          Titik Temu Lintas Kubu
+                        <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                        <p className="text-sm font-semibold text-muted-foreground">
+                          Pejabat tidak menulis pernyataan
                         </p>
-                        <span className="text-xs text-muted-foreground">
-                          · pernyataan yang disetujui mayoritas dari semua kelompok
-                        </span>
                       </div>
-                      <div className="space-y-2">
-                        {BRIDGE_STANCES.map((stance) => (
-                          <div
-                            key={stance.id}
-                            className="bg-primary/[0.04] border border-primary/15 rounded-xl p-4 space-y-2"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="shrink-0 mt-0.5 text-[0.6rem] font-black tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                                BRIDGE
-                              </span>
-                              <p className="text-sm text-foreground leading-relaxed">
-                                &ldquo;{stance.content}&rdquo;
-                              </p>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              {Math.round((stance.agreeCount / stance.totalVotes) * 100)}% setuju ·{" "}
-                              <span className="text-primary/70">konsensus lintas kelompok</span>
-                            </p>
-                          </div>
-                        ))}
-                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Sebagai perwakilan instansi, Anda mengelola lifecycle isu di{" "}
+                        <Link href="/gov" className="text-primary hover:underline">
+                          dasbor pemerintah
+                        </Link>
+                        . Pernyataan deliberatif ditulis oleh Warga dan Pakar.
+                      </p>
                     </div>
                   )}
-
-                  {/* Divisive statements */}
-                  {DIVISIVE_STANCES.length > 0 && (
-                    <div className="space-y-3">
+                  {stageConfig?.allowComments && user && user.tier !== "PEJABAT" && (
+                    <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-status-hot" />
-                        <p className="text-sm font-semibold text-foreground">
-                          Titik Divisif
-                        </p>
-                        <span className="text-xs text-muted-foreground">
-                          · pernyataan dengan opini paling terpolarisasi
+                        <Sparkles className="w-4 h-4 text-accent" />
+                        <p className="text-sm font-semibold text-foreground">Tulis Pernyataan Baru</p>
+                        <StageBadge stageKey={currentStage} />
+                      </div>
+                      <div className="relative">
+                        <textarea
+                          value={stanceText}
+                          onChange={(e) => setStanceText(e.target.value.slice(0, 280))}
+                          placeholder="Tuliskan pernyataan Anda secara singkat dan substantif..."
+                          className="w-full min-h-[100px] p-4 text-sm bg-muted/30 border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent leading-relaxed"
+                        />
+                        <span className="absolute bottom-3 right-3 text-[0.65rem] font-mono text-muted-foreground">
+                          {stanceText.length}/280
                         </span>
                       </div>
-                      <div className="space-y-2">
-                        {DIVISIVE_STANCES.map((stance) => (
-                          <div
-                            key={stance.id}
-                            className="bg-status-hot/[0.04] border border-status-hot/15 rounded-xl p-4 space-y-2"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="shrink-0 mt-0.5 text-[0.6rem] font-black tracking-wider text-status-hot bg-status-hot/10 px-2 py-0.5 rounded-full">
-                                DIVISIF
-                              </span>
-                              <p className="text-sm text-foreground leading-relaxed">
-                                &ldquo;{stance.content}&rdquo;
-                              </p>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Kelompok A:{" "}
-                              <span className="font-medium">89% setuju</span> ·
-                              Kelompok B:{" "}
-                              <span className="font-medium">21% setuju</span>
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === "peta-opini" && <OpinionMap />}
-
-              {activeTab === "hukum" && (
-                <div className="space-y-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-4 h-4 text-accent" />
-                    <p className="text-sm text-muted-foreground">
-                      Regulasi relevan ditemukan oleh AI melalui RAG terhadap corpus 200+ peraturan
-                    </p>
-                  </div>
-                  {LEGAL_REFS.map((ref) => (
-                    <div
-                      key={ref.id}
-                      className="bg-card border border-border rounded-2xl p-5 hover:border-accent/25 transition-all"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-                          <Scale className="w-5 h-5 text-accent" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[0.65rem] font-bold bg-muted text-muted-foreground px-2 py-0.5 rounded">
-                              {ref.type} {ref.number}
-                            </span>
-                            <span className="text-[0.65rem] text-accent bg-accent/10 px-2 py-0.5 rounded-full font-medium">
-                              Relevansi {Math.round(ref.relevance * 100)}%
-                            </span>
-                          </div>
-                          <p className="font-medium text-foreground text-sm">{ref.title}</p>
-                          <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden w-24">
-                            <div
-                              className="h-full bg-accent rounded-full"
-                              style={{ width: `${ref.relevance * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                        <button className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
-                          <ExternalLink className="w-4 h-4" />
+                      <div className="flex justify-end">
+                        <button
+                          disabled={stanceText.length < 20 || posting}
+                          onClick={handlePostStance}
+                          className="bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary/90"
+                        >
+                          {posting ? "Memposting..." : "Posting Pernyataan"}
                         </button>
                       </div>
                     </div>
-                  ))}
-                  <div className="bg-accent/[0.05] border border-accent/15 rounded-xl p-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      <span className="font-semibold text-foreground">Catatan AI:</span> Isu
-                      kebocoran data sudah diatur sebagian di UU 27/2022. Pertimbangkan untuk
-                      fokus pada aspek penegakan dan aturan turunan yang masih kosong.
-                    </p>
-                  </div>
-                </div>
-              )}
+                  )}
 
-              {activeTab === "brief" && (
-                <div className="space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-accent" />
-                      <p className="text-xs text-muted-foreground">
-                        Dihasilkan AI · Gemini 3 Flash · 27 April 2026 · Versi 2
-                      </p>
-                    </div>
-                    <button className="text-xs text-primary hover:underline">Unduh PDF</button>
-                  </div>
-
-                  <div className="bg-card border border-border rounded-2xl p-8 space-y-6">
-                    <div className="pb-4 border-b border-border">
-                      <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-2">
-                        Executive Brief Kebijakan
-                      </p>
-                      <h2 className="font-fraunces text-2xl font-bold text-foreground">
-                        {ISSUE.title}
-                      </h2>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Hasil deliberasi dari 156 partisipan · {ISSUE.stances} pernyataan ·{" "}
-                        {ISSUE.votes.toLocaleString()} vote
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-[0.7rem] font-bold tracking-[0.1em] uppercase text-muted-foreground">
-                        Ringkasan Eksekutif
-                      </p>
-                      <p className="text-sm text-foreground leading-relaxed">
-                        Deliberasi terhadap isu perlindungan data biometrik dalam UU PDP mengungkap
-                        kekhawatiran yang luas di kalangan partisipan. Mayoritas menyepakati
-                        perlunya perlindungan khusus untuk data biometrik yang bersifat permanen dan
-                        tidak dapat diganti. Terdapat perbedaan tajam mengenai pendekatan sanksi dan
-                        dampak regulasi terhadap inovasi digital.
-                      </p>
-                    </div>
-
+                  {bridges.length > 0 && (
                     <div className="space-y-3">
-                      <p className="text-[0.7rem] font-bold tracking-[0.1em] uppercase text-muted-foreground">
-                        Titik Konsensus (Bridge Statements)
-                      </p>
-                      {BRIDGE_STANCES.map((s) => (
-                        <div key={s.id} className="flex items-start gap-3 text-sm">
-                          <CheckCircle2 className="w-4 h-4 text-status-enacted mt-0.5 shrink-0" />
-                          <p className="text-foreground">{s.content}</p>
-                          <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
-                            {Math.round((s.agreeCount / s.totalVotes) * 100)}% setuju
-                          </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-primary" />
+                        <p className="text-sm font-semibold text-foreground">Titik Temu Lintas Kubu</p>
+                      </div>
+                      {bridges.map((s) => (
+                        <div key={s.id} className="bg-primary/[0.04] border border-primary/15 rounded-xl p-4 space-y-2">
+                          <div className="flex items-start gap-3">
+                            <span className="shrink-0 mt-0.5 text-[0.6rem] font-black tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                              BRIDGE
+                            </span>
+                            <p className="text-sm text-foreground leading-relaxed">&ldquo;{s.content}&rdquo;</p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {s.totalVotes ? Math.round((s.agreeCount / s.totalVotes) * 100) : 0}% setuju · konsensus lintas klaster
+                          </p>
                         </div>
                       ))}
                     </div>
+                  )}
 
-                    <div className="space-y-2">
-                      <p className="text-[0.7rem] font-bold tracking-[0.1em] uppercase text-muted-foreground">
-                        Rekomendasi Kebijakan
-                      </p>
-                      <ol className="space-y-2">
-                        {[
-                          "Terbitkan PP khusus yang mendefinisikan standar keamanan minimum untuk pengolahan data biometrik dalam 6 bulan.",
-                          "Tetapkan kewajiban notifikasi pelanggaran data biometrik dalam 48 jam kepada BSSN dan subjek data.",
-                          "Buat kategori sanksi yang membedakan data biometrik dari data pribadi umum, dengan sanksi pidana untuk pelanggaran yang disengaja.",
-                        ].map((rec, i) => (
-                          <li key={i} className="flex items-start gap-3 text-sm text-foreground">
-                            <span className="shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-[0.65rem] font-bold flex items-center justify-center mt-0.5">
-                              {i + 1}
+                  {divisives.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-status-hot" />
+                        <p className="text-sm font-semibold text-foreground">Titik Divisif</p>
+                      </div>
+                      {divisives.map((s) => (
+                        <div key={s.id} className="bg-status-hot/[0.04] border border-status-hot/15 rounded-xl p-4 space-y-2">
+                          <div className="flex items-start gap-3">
+                            <span className="shrink-0 mt-0.5 text-[0.6rem] font-black tracking-wider text-status-hot bg-status-hot/10 px-2 py-0.5 rounded-full">
+                              DIVISIF
                             </span>
-                            {rec}
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "berita" && (
-                <div className="space-y-4">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-accent" />
-                    Diperbarui otomatis · berita relevan dari sumber terpercaya
-                  </p>
-                  {NEWS.map((article) => (
-                    <div
-                      key={article.id}
-                      className="bg-card border border-border rounded-2xl p-5 hover:border-accent/25 transition-all group cursor-pointer"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                          <Newspaper className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground text-sm leading-snug group-hover:text-primary transition-colors">
-                            {article.title}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
-                            <span className="font-medium">{article.source}</span>
-                            <span>·</span>
-                            <span>{article.timeAgo}</span>
+                            <p className="text-sm text-foreground leading-relaxed">&ldquo;{s.content}&rdquo;</p>
                           </div>
                         </div>
-                        <ExternalLink className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors shrink-0" />
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
+
+              {activeTab === "peta-opini" && <OpinionMap slug={slug} />}
+              {activeTab === "hukum" && <LegalContextTab slug={slug} />}
+              {activeTab === "brief" && <PolicyBriefTab slug={slug} />}
+              {activeTab === "berita" && <RelatedNewsTab query={issue.title} />}
             </div>
 
-            {/* Sidebar */}
             <aside className="space-y-5 sticky top-24">
-              {/* 5-Stage Lifecycle Timeline */}
               <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
                 <p className="text-sm font-semibold text-foreground">Tahapan Isu</p>
-                <IssueTimeline currentStage={CURRENT_STAGE} timeline={ISSUE_TIMELINE} />
+                <IssueTimeline currentStage={currentStage} timeline={issue.timeline} />
               </div>
 
-              {/* Quick stats */}
               <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
                 <p className="text-sm font-semibold text-foreground">Statistik</p>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: "Partisipan", value: "156", icon: Users },
-                    { label: "Pernyataan", value: "47", icon: MessageSquare },
-                    { label: "Total Vote", value: "4.231", icon: Vote },
-                    { label: "Kubu Opini", value: "3", icon: Flag },
+                    { label: "Partisipan", value: issue.participants.toString(), icon: Users },
+                    { label: "Pernyataan", value: issue.stances.toString(), icon: MessageSquare },
+                    { label: "Total Vote", value: issue.votes.toLocaleString(), icon: Vote },
+                    { label: "Heat Score", value: (issue.heat_score ?? 0).toFixed(2), icon: Flag },
                   ].map(({ label, value, icon: Icon }) => (
                     <div key={label} className="bg-muted/40 rounded-xl p-3 text-center">
                       <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />
@@ -1125,31 +969,11 @@ export default function DeliberationPage() {
                 </div>
               </div>
 
-              {/* Legal refs summary */}
-              <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
-                <p className="text-sm font-semibold text-foreground">Referensi Hukum</p>
-                <div className="space-y-2">
-                  {LEGAL_REFS.map((ref) => (
-                    <div key={ref.id} className="flex items-center gap-2 text-xs">
-                      <Scale className="w-3.5 h-3.5 text-accent shrink-0" />
-                      <span className="text-muted-foreground">
-                        {ref.type} {ref.number} — {ref.title}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setActiveTab("hukum")}
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                >
-                  Lihat semua <ChevronRight className="w-3 h-3" />
-                </button>
-              </div>
-
-              {/* Report */}
-              <button className="w-full flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-2">
-                <Flag className="w-3.5 h-3.5" />
-                Laporkan isu ini
+              <button
+                onClick={() => setActiveTab("hukum")}
+                className="w-full text-sm text-primary hover:underline flex items-center justify-center gap-1"
+              >
+                Lihat konteks hukum <ChevronRight className="w-3 h-3" />
               </button>
             </aside>
           </div>

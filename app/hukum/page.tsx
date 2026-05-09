@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { laws as lawsApi, LawDocument } from "@/lib/api";
 import {
   Search,
   Scale,
@@ -24,20 +25,7 @@ import { Navbar } from "@/components/layout/navbar";
 type LawType = "UU" | "PP" | "PERPRES" | "PERMEN" | "PERDA" | "PERBUP" | "KEPRES" | "SE";
 type LawStatus = "BERLAKU" | "DICABUT" | "DIREVISI";
 
-interface LawDocument {
-  id: string;
-  type: LawType;
-  number: string;
-  year: number;
-  title: string;
-  description: string;
-  status: LawStatus;
-  category: string;
-  dateEnacted: string;
-  tags: string[];
-  views: number;
-  bookmarked: boolean;
-}
+// LawDocument is now imported from lib/api
 
 const LAW_TYPE_CONFIG: Record<LawType, { label: string; color: string; icon: React.ElementType }> = {
   UU: { label: "Undang-Undang", color: "bg-status-enacted", icon: Gavel },
@@ -56,7 +44,7 @@ const STATUS_CONFIG: Record<LawStatus, { label: string; cls: string }> = {
   DIREVISI: { label: "Direvisi", cls: "bg-status-hot/10 text-status-hot" },
 };
 
-const MOCK_LAWS: LawDocument[] = [
+const _MOCK_LAWS_LEGACY: unknown[] = [
   {
     id: "uu-27-2022",
     type: "UU",
@@ -159,8 +147,8 @@ const RECENT_SEARCHES = [
 ];
 
 function LawCard({ law }: { law: LawDocument }) {
-  const typeConfig = LAW_TYPE_CONFIG[law.type];
-  const statusConfig = STATUS_CONFIG[law.status];
+  const typeConfig = LAW_TYPE_CONFIG[law.type as LawType] ?? LAW_TYPE_CONFIG.UU;
+  const statusConfig = STATUS_CONFIG[law.status as LawStatus] ?? STATUS_CONFIG.BERLAKU;
   const Icon = typeConfig.icon;
 
   return (
@@ -191,7 +179,7 @@ function LawCard({ law }: { law: LawDocument }) {
       </div>
 
       {/* Title */}
-      <Link href={`/hukum/${law.id}`}>
+      <Link href={`/hukum/${law.code}`}>
         <h3 className="font-fraunces text-lg font-bold text-foreground leading-snug mb-2 group-hover:text-primary transition-colors cursor-pointer">
           {law.title}
         </h3>
@@ -240,22 +228,28 @@ export default function HukumPage() {
   const [selectedType, setSelectedType] = useState<LawType | "ALL">("ALL");
   const [selectedStatus, setSelectedStatus] = useState<LawStatus | "ALL">("ALL");
   const [hasSearched, setHasSearched] = useState(false);
+  const [laws, setLaws] = useState<LawDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    lawsApi
+      .list({
+        type: selectedType === "ALL" ? undefined : selectedType,
+        status: selectedStatus === "ALL" ? undefined : selectedStatus,
+        q: searchQuery.trim() || undefined,
+      })
+      .then(setLaws)
+      .catch(() => setLaws([]))
+      .finally(() => setLoading(false));
+  }, [selectedType, selectedStatus, searchQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setHasSearched(true);
   };
 
-  const filteredLaws = MOCK_LAWS.filter((law) => {
-    const matchesType = selectedType === "ALL" || law.type === selectedType;
-    const matchesStatus = selectedStatus === "ALL" || law.status === selectedStatus;
-    const matchesSearch =
-      searchQuery === "" ||
-      law.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      law.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      law.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesType && matchesStatus && matchesSearch;
-  });
+  const filteredLaws = laws;
 
   return (
     <div className="min-h-screen bg-background">
@@ -378,7 +372,7 @@ export default function HukumPage() {
                       }`}
                     >
                       <span>Semua Jenis</span>
-                      <span className="text-[0.65rem] text-muted-foreground/60">{MOCK_LAWS.length}</span>
+                      <span className="text-[0.65rem] text-muted-foreground/60">{laws.length}</span>
                     </button>
                     {Object.entries(LAW_TYPE_CONFIG).map(([key, config]) => (
                       <button
@@ -393,7 +387,7 @@ export default function HukumPage() {
                         <span className={`w-2 h-2 rounded-full ${config.color}`} />
                         <span className="flex-1">{config.label}</span>
                         <span className="text-[0.65rem] text-muted-foreground/60">
-                          {MOCK_LAWS.filter((l) => l.type === key).length}
+                          {laws.filter((l) => l.type === key).length}
                         </span>
                       </button>
                     ))}
@@ -473,7 +467,13 @@ export default function HukumPage() {
                   </div>
                 </div>
 
-                {filteredLaws.length > 0 ? (
+                {loading ? (
+                  <div className="space-y-4">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="h-44 bg-card border border-border rounded-2xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : filteredLaws.length > 0 ? (
                   <div className="space-y-4">
                     {filteredLaws.map((law) => (
                       <LawCard key={law.id} law={law} />

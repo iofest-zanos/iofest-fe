@@ -2,11 +2,32 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { ApiError } from "@/lib/api";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login } = useAuth();
   const [showPass, setShowPass] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login(form.email.trim(), form.password);
+      router.push("/issues");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Tidak bisa masuk. Coba lagi.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -70,7 +91,12 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {error && (
+              <div className="text-xs text-status-rejected bg-status-rejected/10 border border-status-rejected/20 px-3 py-2 rounded-lg">
+                {error}
+              </div>
+            )}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground tracking-wide" htmlFor="email">
                 Email
@@ -115,9 +141,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 mt-2"
+              disabled={submitting || !form.email || !form.password}
+              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Masuk
+              {submitting ? "Memproses..." : "Masuk"}
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

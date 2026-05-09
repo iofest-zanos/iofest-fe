@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { forum, ThreadListItem } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import {
   ArrowLeft,
   Bookmark,
@@ -20,21 +22,7 @@ import { Navbar } from "@/components/layout/navbar";
 type ThreadStatus = "OPEN" | "SOLVED" | "CLOSED";
 type ForumCategory = "GENERAL" | "POLICY_DISCUSSION" | "EXPERT_QA" | "CIVIC_TECH" | "LEGAL_HELP" | "NEWS_DISCUSS";
 
-interface BookmarkedThread {
-  id: number;
-  slug: string;
-  title: string;
-  excerpt: string;
-  status: ThreadStatus;
-  category: ForumCategory;
-  author: { name: string; tier: "PAKAR" | "PEJABAT" | "WARGA"; profession: string; initial: string };
-  replies: number;
-  views: number;
-  upvotes: number;
-  tags: string[];
-  bookmarkedAt: string;
-  lastReply?: { author: string; timeAgo: string };
-}
+type BookmarkedThread = ThreadListItem & { bookmarkedAt?: string };
 
 const CATEGORY_LABELS: Record<ForumCategory, string> = {
   GENERAL: "Umum",
@@ -51,7 +39,7 @@ const TIER_CONFIG = {
   WARGA: { cls: "bg-muted text-muted-foreground" },
 };
 
-const MOCK_BOOKMARKS: BookmarkedThread[] = [
+const _MOCK_BOOKMARKS_LEGACY: unknown[] = [
   {
     id: 1,
     slug: "diskusi-ruu-perlindungan-data-pribadi",
@@ -139,7 +127,7 @@ function BookmarkCard({
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1 text-[0.6rem] font-black tracking-wider uppercase bg-accent text-accent-foreground px-2.5 py-1 rounded-full">
-            {CATEGORY_LABELS[thread.category]}
+            {CATEGORY_LABELS[thread.category as ForumCategory] ?? thread.category}
           </span>
           {thread.status === "SOLVED" && (
             <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold text-status-enacted bg-status-enacted/10 px-2 py-0.5 rounded-full">
@@ -213,28 +201,44 @@ function BookmarkCard({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 text-[0.65rem] text-muted-foreground">
             <Bookmark className="w-3 h-3" />
-            <span>Disimpan {thread.bookmarkedAt}</span>
+            <span>Disimpan {thread.bookmarkedAt ?? thread.timeAgo}</span>
           </div>
         </div>
       </div>
 
-      {/* Last reply */}
-      {thread.lastReply && (
-        <div className="mt-3 pt-3 border-t border-border text-[0.65rem] text-muted-foreground">
-          Balasan terakhir oleh <span className="font-medium text-foreground">{thread.lastReply.author}</span> · {thread.lastReply.timeAgo}
-        </div>
-      )}
     </div>
   );
 }
 
 export default function BookmarksPage() {
-  const [bookmarks, setBookmarks] = useState<BookmarkedThread[]>(MOCK_BOOKMARKS);
+  const { user, loading: authLoading } = useAuth();
+  const [bookmarks, setBookmarks] = useState<BookmarkedThread[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<ForumCategory | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleRemoveBookmark = (id: number) => {
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    forum
+      .myBookmarks()
+      .then((items) => setBookmarks(items as BookmarkedThread[]))
+      .catch(() => setBookmarks([]))
+      .finally(() => setLoading(false));
+  }, [user, authLoading]);
+
+  const handleRemoveBookmark = async (id: number) => {
+    const target = bookmarks.find((b) => b.id === id);
+    if (!target) return;
     setBookmarks((prev) => prev.filter((b) => b.id !== id));
+    try {
+      await forum.bookmark(target.slug, false);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const filteredBookmarks = bookmarks.filter((thread) => {
@@ -371,7 +375,20 @@ export default function BookmarksPage() {
 
           {/* Main content */}
           <main className="flex-1 min-w-0">
-            {filteredBookmarks.length > 0 ? (
+            {!user && !authLoading ? (
+              <div className="text-center py-16 bg-card border border-border rounded-2xl">
+                <p className="text-muted-foreground mb-4">Masuk untuk melihat bookmark Anda.</p>
+                <Link href="/auth/login" className="text-primary hover:underline text-sm">
+                  Masuk
+                </Link>
+              </div>
+            ) : loading ? (
+              <div className="space-y-4">
+                {[0, 1].map((i) => (
+                  <div key={i} className="h-44 bg-card border border-border rounded-2xl animate-pulse" />
+                ))}
+              </div>
+            ) : filteredBookmarks.length > 0 ? (
               <div className="space-y-4">
                 {filteredBookmarks.map((thread) => (
                   <BookmarkCard

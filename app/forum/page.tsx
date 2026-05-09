@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   Search,
   MessageSquare,
@@ -13,6 +16,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
+import { forum, ThreadListItem } from "@/lib/api";
 
 type ThreadStatus = "HOT" | "PINNED" | "OPEN" | "SOLVED" | "CLOSED";
 type ForumCategory =
@@ -23,28 +27,7 @@ type ForumCategory =
   | "LEGAL_HELP"
   | "NEWS_DISCUSS";
 
-interface Thread {
-  id: number;
-  slug: string;
-  title: string;
-  excerpt: string;
-  status: ThreadStatus;
-  category: ForumCategory;
-  author: {
-    name: string;
-    tier: "PAKAR" | "PEJABAT" | "WARGA";
-    profession: string;
-    initial: string;
-  };
-  replies: number;
-  views: number;
-  upvotes: number;
-  heatScore: number;
-  tags: string[];
-  timeAgo: string;
-  lastReply?: { author: string; timeAgo: string };
-  isAnswered?: boolean;
-}
+type Thread = ThreadListItem;
 
 const STATUS_CONFIG: Record<ThreadStatus, { label: string; cls: string }> = {
   HOT: { label: "Trending", cls: "bg-status-hot text-white" },
@@ -90,7 +73,7 @@ const TIER_CONFIG = {
   WARGA: { cls: "bg-muted text-muted-foreground" },
 };
 
-const MOCK_THREADS: Thread[] = [
+const MOCK_THREADS_LEGACY: unknown[] = [
   {
     id: 1,
     slug: "bagaimana-mekanisme-deliberasi-works",
@@ -289,7 +272,7 @@ function HeatBar({ score }: { score: number }) {
 }
 
 function ThreadCard({ thread }: { thread: Thread }) {
-  const status = STATUS_CONFIG[thread.status];
+  const status = STATUS_CONFIG[thread.status as ThreadStatus] ?? STATUS_CONFIG.OPEN;
   const tier = TIER_CONFIG[thread.author.tier];
 
   return (
@@ -305,7 +288,7 @@ function ThreadCard({ thread }: { thread: Thread }) {
             {status.label}
           </span>
           <span className="text-[0.7rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-            {CATEGORY_LABELS[thread.category].label}
+            {CATEGORY_LABELS[thread.category as ForumCategory]?.label ?? thread.category}
           </span>
           {thread.isAnswered && (
             <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold text-status-enacted bg-status-enacted/10 px-2 py-0.5 rounded-full">
@@ -359,46 +342,40 @@ function ThreadCard({ thread }: { thread: Thread }) {
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <MessageSquare className="w-3.5 h-3.5" />
-            <span className="font-medium text-foreground">
-              {thread.replies}
-            </span>
+            <span className="font-medium text-foreground">{thread.replies}</span>
             <span>balasan</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Users className="w-3.5 h-3.5" />
-            <span className="font-medium text-foreground">
-              {thread.views.toLocaleString()}
-            </span>
+            <span className="font-medium text-foreground">{thread.views.toLocaleString()}</span>
             <span>dilihat</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ThumbsUp className="w-3.5 h-3.5" />
-            <span className="font-medium text-foreground">
-              {thread.upvotes}
-            </span>
+            <span className="font-medium text-foreground">{thread.upvotes}</span>
           </div>
         </div>
-
-        {thread.lastReply && (
-          <div className="text-[0.65rem] text-muted-foreground">
-            Balasan terakhir oleh{" "}
-            <span className="font-medium text-foreground">
-              {thread.lastReply.author}
-            </span>{" "}
-            · {thread.lastReply.timeAgo}
-          </div>
-        )}
       </div>
     </Link>
   );
 }
 
 export default function ForumPage() {
-  const hotThreads = MOCK_THREADS.filter(
-    (t) => t.status === "HOT" || t.heatScore >= 0.85,
-  );
-  const pinnedThreads = MOCK_THREADS.filter((t) => t.status === "PINNED");
-  const allThreads = MOCK_THREADS.filter((t) => t.status !== "PINNED");
+  const [items, setItems] = useState<Thread[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    forum
+      .list()
+      .then(setItems)
+      .catch((e) => setError(e instanceof Error ? e.message : "Gagal memuat forum."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const hotThreads = items.filter((t) => t.status === "HOT" || t.heatScore >= 0.85);
+  const allThreads = items.filter((t) => t.status !== "PINNED");
+  const MOCK_THREADS = items;
 
   return (
     <div className="min-h-screen bg-background">
@@ -605,9 +582,6 @@ export default function ForumPage() {
                   <p className="font-medium text-foreground group-hover:text-accent transition-colors">
                     Lihat diskusi yang Anda simpan
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    4 thread tersimpan · Terakhir disimpan 2 hari lalu
-                  </p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
               </Link>
@@ -623,11 +597,20 @@ export default function ForumPage() {
                   · paling aktif minggu ini
                 </span>
               </div>
-              <div className="grid grid-cols-1 gap-4">
-                {hotThreads.slice(0, 3).map((thread) => (
-                  <ThreadCard key={thread.id} thread={thread} />
-                ))}
-              </div>
+              {loading ? (
+                <div className="space-y-3">
+                  <div className="h-32 bg-card border border-border rounded-2xl animate-pulse" />
+                  <div className="h-32 bg-card border border-border rounded-2xl animate-pulse" />
+                </div>
+              ) : error ? (
+                <p className="text-sm text-status-rejected">{error}</p>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {hotThreads.slice(0, 3).map((thread) => (
+                    <ThreadCard key={thread.id} thread={thread} />
+                  ))}
+                </div>
+              )}
             </section>
 
             <section>

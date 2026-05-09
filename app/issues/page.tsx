@@ -1,30 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, Filter, Clock, Users, MessageSquare, TrendingUp, ChevronRight, X } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
+import { issues as issuesApi, IssueListItem } from "@/lib/api";
 
 type IssueStatus = "DIAJUKAN" | "SEDANG_DIBAHAS" | "DRAFT" | "PENGESAHAN" | "HASIL";
 type CategoryKey = "DIGITAL_RIGHTS" | "INFRASTRUCTURE" | "PUBLIC_POLICY" | "ENVIRONMENT" | "EDUCATION" | "HEALTH" | "ECONOMY";
 type ScopeKey = "ALL" | "NASIONAL" | "DKI_JAKARTA" | "JAWA_BARAT" | "JAWA_TIMUR";
 
-interface Issue {
-  id: number;
-  slug: string;
-  title: string;
-  description: string;
-  status: IssueStatus;
-  category: CategoryKey;
-  scopeLabel: string;
-  scopeKey: ScopeKey;
-  author: { name: string; tier: "PAKAR" | "PEJABAT" | "WARGA"; profession: string };
-  participants: number;
-  stances: number;
-  votes: number;
-  tags: string[];
-  timeAgo: string;
-}
+type Issue = IssueListItem;
 
 const STATUS_CONFIG: Record<IssueStatus, { label: string; cls: string }> = {
   DIAJUKAN:       { label: "Isu Diajukan", cls: "bg-stage-diajukan text-white" },
@@ -58,7 +44,7 @@ const TIER_CONFIG = {
   WARGA:   { cls: "bg-muted text-muted-foreground" },
 };
 
-const MOCK_ISSUES: Issue[] = [
+const _MOCK_ISSUES_DEPRECATED: never[] = []; const MOCK_ISSUES_LEGACY = [
   {
     id: 1,
     slug: "perlindungan-data-biometrik-uu-pdp",
@@ -185,8 +171,9 @@ const SCOPES: { key: ScopeKey; label: string }[] = [
   { key: "JAWA_TIMUR", label: "Jawa Timur" },
 ];
 
-// Simple fuzzy search function
-function fuzzySearch(issues: Issue[], query: string): Issue[] {
+// (legacy) Simple fuzzy search retained for client-side fallback if needed.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _fuzzySearch_unused(issues: Issue[], query: string): Issue[] {
   if (!query.trim()) return issues;
   
   const searchTerm = query.toLowerCase().trim();
@@ -199,8 +186,8 @@ function fuzzySearch(issues: Issue[], query: string): Issue[] {
       issue.author.name,
       issue.author.profession,
       issue.scopeLabel,
-      CATEGORY_LABELS[issue.category],
-      STATUS_CONFIG[issue.status].label,
+      CATEGORY_LABELS[issue.category as CategoryKey] ?? issue.category,
+      STATUS_CONFIG[issue.status as IssueStatus]?.label ?? issue.status,
       ...issue.tags,
     ].join(" ").toLowerCase();
     
@@ -256,7 +243,7 @@ function levenshteinDistance(a: string, b: string): number {
 
 
 function IssueCard({ issue }: { issue: Issue }) {
-  const status = STATUS_CONFIG[issue.status];
+  const status = STATUS_CONFIG[issue.status as IssueStatus] ?? { label: issue.status, cls: "bg-muted text-muted-foreground" };
   const tier = TIER_CONFIG[issue.author.tier];
 
   return (
@@ -271,7 +258,7 @@ function IssueCard({ issue }: { issue: Issue }) {
             {status.label}
           </span>
           <span className="text-[0.7rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-            {CATEGORY_LABELS[issue.category]}
+            {CATEGORY_LABELS[issue.category as CategoryKey] ?? issue.category}
           </span>
           <span className="text-[0.7rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
             {issue.scopeLabel}
@@ -341,49 +328,30 @@ export default function IssuesPage() {
   const [selectedScope, setSelectedScope] = useState<ScopeKey>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "participants" | "votes">("newest");
+  const [items, setItems] = useState<Issue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Apply filters and search
-  const filteredIssues = useMemo(() => {
-    let result = [...MOCK_ISSUES];
-    
-    // Status filter
-    if (selectedStatus !== "ALL") {
-      result = result.filter((issue) => issue.status === selectedStatus);
-    }
-    
-    // Category filter
-    if (selectedCategory !== "ALL") {
-      result = result.filter((issue) => issue.category === selectedCategory);
-    }
-    
-    // Scope filter
-    if (selectedScope !== "ALL") {
-      result = result.filter((issue) => issue.scopeKey === selectedScope);
-    }
-    
-    // Fuzzy search
-    if (searchQuery.trim()) {
-      result = fuzzySearch(result, searchQuery);
-    }
-    
-    // Sort
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case "newest":
-          return b.id - a.id;
-        case "participants":
-          return b.participants - a.participants;
-        case "votes":
-          return b.votes - a.votes;
-        default:
-          return 0;
-      }
-    });
-    
-    return result;
+  useEffect(() => {
+    const ctl = new AbortController();
+    setLoading(true);
+    setError(null);
+    issuesApi
+      .list({
+        status: selectedStatus === "ALL" ? undefined : selectedStatus,
+        category: selectedCategory === "ALL" ? undefined : selectedCategory,
+        scope: selectedScope === "ALL" ? undefined : selectedScope,
+        q: searchQuery.trim() || undefined,
+        sort: sortBy,
+      })
+      .then((r) => setItems(r.results))
+      .catch((e) => setError(e.message ?? "Gagal memuat isu."))
+      .finally(() => setLoading(false));
+    return () => ctl.abort();
   }, [selectedStatus, selectedCategory, selectedScope, searchQuery, sortBy]);
 
-  const allFilteredIssues = filteredIssues;
+  const filteredIssues = items;
+  const allFilteredIssues = items;
 
   // Check if any filter is active
   const hasActiveFilters = selectedStatus !== "ALL" || selectedCategory !== "ALL" || selectedScope !== "ALL" || searchQuery !== "";
@@ -506,7 +474,7 @@ export default function IssuesPage() {
                     <span>{s.label}</span>
                     {s.key !== "ALL" && (
                       <span className="text-[0.65rem] text-muted-foreground/60">
-                        {MOCK_ISSUES.filter(i => i.status === s.key).length}
+                        {items.filter((i) => i.status === s.key).length}
                       </span>
                     )}
                   </button>
@@ -533,7 +501,7 @@ export default function IssuesPage() {
                     <span>{c.label}</span>
                     {c.key !== "ALL" && (
                       <span className="text-[0.65rem] text-muted-foreground/60">
-                        {MOCK_ISSUES.filter(i => i.category === c.key).length}
+                        {items.filter((i) => i.category === c.key).length}
                       </span>
                     )}
                   </button>
@@ -560,7 +528,7 @@ export default function IssuesPage() {
                     <span>{scope.label}</span>
                     {scope.key !== "ALL" && (
                       <span className="text-[0.65rem] text-muted-foreground/60">
-                        {MOCK_ISSUES.filter(i => i.scopeKey === scope.key).length}
+                        {items.filter((i) => i.scopeKey === scope.key).length}
                       </span>
                     )}
                   </button>
@@ -614,7 +582,18 @@ export default function IssuesPage() {
                 </div>
               </div>
               
-              {filteredIssues.length > 0 ? (
+              {loading ? (
+                <div className="grid grid-cols-1 gap-4">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-44 bg-card border border-border rounded-2xl animate-pulse" />
+                  ))}
+                </div>
+              ) : error ? (
+                <div className="text-center py-12 bg-card border border-border rounded-2xl">
+                  <p className="text-status-rejected font-medium mb-1">Gagal memuat isu</p>
+                  <p className="text-sm text-muted-foreground">{error}</p>
+                </div>
+              ) : filteredIssues.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
                   {allFilteredIssues.map((issue) => (
                     <IssueCard key={issue.id} issue={issue} />

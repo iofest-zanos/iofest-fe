@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ArrowRight, Check, ChevronRight } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { ApiError } from "@/lib/api";
 
 type Step = 1 | 2 | 3;
 
@@ -13,6 +16,8 @@ const STEPS = [
 ];
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const { register, verifyOtp } = useAuth();
   const [step, setStep] = useState<Step>(1);
   const [showPass, setShowPass] = useState(false);
   const [form, setForm] = useState({
@@ -23,6 +28,56 @@ export default function RegisterPage() {
     bio: "",
     profession: "",
   });
+  const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleAccountSubmit() {
+    if (form.password.length < 8) {
+      setError("Password minimal 8 karakter.");
+      return;
+    }
+    setError(null);
+    setStep(2);
+  }
+
+  async function handleProfileSubmit() {
+    setError(null);
+    setSubmitting(true);
+    try {
+      await register({
+        full_name: form.fullName,
+        email: form.email,
+        password: form.password,
+        phone: form.phone,
+        profession: form.profession,
+        bio: form.bio,
+      });
+      setStep(3);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Pendaftaran gagal.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleVerify() {
+    const code = otp.join("");
+    if (code.length !== 6) {
+      setError("Masukkan 6 digit OTP. (Mode dev: cek terminal server backend.)");
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      await verifyOtp(form.email, code);
+      router.push("/issues");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "OTP tidak valid.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   const passwordStrength = (() => {
     const p = form.password;
@@ -241,9 +296,15 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {error && step === 1 && (
+                <div className="text-xs text-status-rejected bg-status-rejected/10 border border-status-rejected/20 px-3 py-2 rounded-lg">
+                  {error}
+                </div>
+              )}
               <button
-                onClick={() => setStep(2)}
-                className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20"
+                onClick={handleAccountSubmit}
+                disabled={!form.fullName || !form.email || form.password.length < 8}
+                className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Lanjutkan
                 <ArrowRight className="w-4 h-4" />
@@ -325,13 +386,19 @@ export default function RegisterPage() {
                   Kembali
                 </button>
                 <button
-                  onClick={() => setStep(3)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20"
+                  onClick={handleProfileSubmit}
+                  disabled={submitting}
+                  className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Lanjutkan
+                  {submitting ? "Mendaftarkan..." : "Lanjutkan"}
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
+              {error && step === 2 && (
+                <div className="text-xs text-status-rejected bg-status-rejected/10 border border-status-rejected/20 px-3 py-2 rounded-lg">
+                  {error}
+                </div>
+              )}
             </div>
           )}
 
@@ -353,11 +420,29 @@ export default function RegisterPage() {
                     <input
                       key={i}
                       type="text"
+                      inputMode="numeric"
                       maxLength={1}
+                      value={otp[i]}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 1);
+                        const next = [...otp];
+                        next[i] = val;
+                        setOtp(next);
+                        if (val && i < 5) {
+                          const nextEl = document.getElementById(`otp-${i + 1}`);
+                          nextEl?.focus();
+                        }
+                      }}
+                      id={`otp-${i}`}
                       className="w-11 h-13 text-center text-lg font-bold bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
                     />
                   ))}
                 </div>
+                {error && step === 3 && (
+                  <div className="text-xs text-status-rejected bg-status-rejected/10 border border-status-rejected/20 px-3 py-2 rounded-lg">
+                    {error}
+                  </div>
+                )}
 
                 <div className="text-center space-y-2">
                   <p className="text-xs text-muted-foreground">
@@ -379,13 +464,15 @@ export default function RegisterPage() {
                 >
                   Kembali
                 </button>
-                <Link
-                  href="/issues"
-                  className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20"
+                <button
+                  type="button"
+                  onClick={handleVerify}
+                  disabled={submitting || otp.join("").length !== 6}
+                  className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Aktifkan Akun
+                  {submitting ? "Memverifikasi..." : "Aktifkan Akun"}
                   <ArrowRight className="w-4 h-4" />
-                </Link>
+                </button>
               </div>
             </div>
           )}

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ApiError, forum } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import {
   ArrowLeft,
   MessageSquare,
@@ -88,6 +90,7 @@ const POPULAR_TAGS = [
 
 export default function NewThreadPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ForumCategory | null>(null);
@@ -95,6 +98,7 @@ export default function NewThreadPage() {
   const [tagInput, setTagInput] = useState("");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [showAiSuggestion, setShowAiSuggestion] = useState(false);
 
@@ -131,13 +135,26 @@ export default function NewThreadPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
-
+    if (!canSubmit || !selectedCategory) return;
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
+    setSubmitError(null);
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    router.push("/forum");
+    try {
+      const created = await forum.create({
+        title,
+        content,
+        category: selectedCategory,
+        tags,
+      });
+      router.push(`/forum/${created.slug}`);
+    } catch (err) {
+      setSubmitError(err instanceof ApiError ? err.message : "Gagal membuat thread.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAiAssist = () => {
@@ -485,6 +502,12 @@ export default function NewThreadPage() {
                 </li>
               </ul>
             </div>
+
+            {submitError && (
+              <div className="text-sm text-status-rejected bg-status-rejected/10 border border-status-rejected/20 px-4 py-2 rounded-xl">
+                {submitError}
+              </div>
+            )}
 
             {/* Submit Buttons */}
             <div className="flex items-center gap-4 pt-4 border-t border-border">

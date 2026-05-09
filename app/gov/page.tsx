@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { issues as issuesApi, IssueListItem } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import {
   Search,
   Filter,
@@ -342,26 +344,84 @@ function EditStatusModal({ issue, isOpen, onClose, onSave }: EditStatusModalProp
   );
 }
 
+// Map API 5-stage lifecycle onto the gov dashboard's legacy 7-status shape so the
+// existing UI keeps working. PATCH back to /api/issues/{slug}/status with the
+// proper stage code when the user edits.
+const STAGE_TO_STATUS: Record<string, IssueStatus> = {
+  DIAJUKAN: "PROPOSED",
+  SEDANG_DIBAHAS: "OPEN",
+  DRAFT: "FORWARDED",
+  PENGESAHAN: "LEGISLATION",
+  HASIL: "ENACTED",
+};
+const STATUS_TO_STAGE: Record<IssueStatus, string> = {
+  PROPOSED: "DIAJUKAN",
+  OPEN: "SEDANG_DIBAHAS",
+  HOT: "SEDANG_DIBAHAS",
+  FORWARDED: "DRAFT",
+  LEGISLATION: "PENGESAHAN",
+  ENACTED: "HASIL",
+  REJECTED: "HASIL",
+};
+
+function apiToLegacy(item: IssueListItem): Issue {
+  return {
+    id: item.id,
+    slug: item.slug,
+    title: item.title,
+    description: item.description,
+    status: item.is_trending ? "HOT" : STAGE_TO_STATUS[item.status] ?? "OPEN",
+    category: item.category as CategoryKey,
+    scopeLabel: item.scopeLabel,
+    author: item.author,
+    participants: item.participants,
+    stances: item.stances,
+    votes: item.votes,
+    heatScore: item.heat_score,
+    tags: item.tags,
+    timeAgo: item.timeAgo,
+    createdAt: new Date(item.created_at).toLocaleDateString("id-ID"),
+    forwardedTo: item.forwarded_to,
+    notes: item.notes,
+  };
+}
+
 export default function GovDashboardPage() {
-  const [issues, setIssues] = useState<Issue[]>(MOCK_ISSUES);
+  const { user } = useAuth();
+  const [issues, setIssues] = useState<Issue[]>([]);
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<IssueStatus | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    issuesApi
+      .list({ sort: "newest" })
+      .then((r) => setIssues(r.results.map(apiToLegacy)))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleEditClick = (issue: Issue) => {
     setEditingIssue(issue);
     setIsModalOpen(true);
   };
 
-  const handleSaveStatus = (issueId: number, newStatus: IssueStatus, notes: string) => {
-    setIssues((prev) =>
-      prev.map((issue) =>
-        issue.id === issueId
-          ? { ...issue, status: newStatus, notes }
-          : issue
-      )
-    );
+  const handleSaveStatus = async (issueId: number, newStatus: IssueStatus, notes: string) => {
+    const target = issues.find((i) => i.id === issueId);
+    if (!target) return;
+    const stage = STATUS_TO_STAGE[newStatus];
+    try {
+      await issuesApi.updateStatus(target.slug, { stage, note: notes });
+      setIssues((prev) =>
+        prev.map((issue) =>
+          issue.id === issueId ? { ...issue, status: newStatus, notes } : issue,
+        ),
+      );
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Gagal mengubah status.");
+    }
   };
 
   const filteredIssues = issues.filter((issue) => {
@@ -373,6 +433,10 @@ export default function GovDashboardPage() {
   });
 
   const hotIssues = issues.filter((i) => i.heatScore >= 0.85);
+
+  if (user && user.tier !== "PEJABAT" && !user.is_email_verified) {
+    // No-op: still allow viewing; backend will block writes.
+  }
 
   return (
     <div className="min-h-screen bg-background">

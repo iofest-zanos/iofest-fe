@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +19,8 @@ import {
   Hash,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
+import { forum, ForumReply, ThreadDetail } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
 type ThreadStatus = "OPEN" | "SOLVED" | "CLOSED";
 type ForumCategory = "GENERAL" | "POLICY_DISCUSSION" | "EXPERT_QA" | "CIVIC_TECH" | "LEGAL_HELP" | "NEWS_DISCUSS";
@@ -38,26 +40,7 @@ interface Reply {
   isBestAnswer?: boolean;
 }
 
-interface Thread {
-  id: number;
-  slug: string;
-  title: string;
-  content: string;
-  status: ThreadStatus;
-  category: ForumCategory;
-  author: {
-    name: string;
-    tier: ReplyTier;
-    profession: string;
-    initial: string;
-  };
-  replies: Reply[];
-  views: number;
-  upvotes: number;
-  tags: string[];
-  createdAt: string;
-  isBookmarked: boolean;
-}
+// (Thread shape now provided by ThreadDetail from lib/api)
 
 const CATEGORY_LABELS: Record<ForumCategory, { label: string; description: string }> = {
   GENERAL: { label: "Umum", description: "Diskusi umum tentang platform dan kebijakan" },
@@ -74,7 +57,7 @@ const TIER_CONFIG: Record<ReplyTier, { cls: string; label: string }> = {
   WARGA: { cls: "bg-muted text-muted-foreground", label: "WARGA" },
 };
 
-const MOCK_THREAD: Thread = {
+const MOCK_THREAD_LEGACY: unknown = {
   id: 2,
   slug: "diskusi-ruu-perlindungan-data-pribadi",
   title: "Diskusi: Revisi RUU Perlindungan Data Pribadi yang sedang berjalan",
@@ -185,11 +168,15 @@ const RELATED_THREADS = [
 function ReplyCard({
   reply,
   isOwner,
+  onUpvote,
+  canVote,
 }: {
-  reply: Reply;
+  reply: ForumReply;
   isOwner: boolean;
+  onUpvote: () => void;
+  canVote: boolean;
 }) {
-  const tier = TIER_CONFIG[reply.author.tier];
+  const tier = TIER_CONFIG[reply.author.tier as ReplyTier] ?? TIER_CONFIG.WARGA;
 
   return (
     <div
@@ -201,6 +188,7 @@ function ReplyCard({
     >
       {/* Best Answer Badge */}
       {reply.isBestAnswer && (
+
         <div className="flex items-center gap-2 mb-4 pb-4 border-b border-status-enacted/20">
           <CheckCircle2 className="w-4 h-4 text-status-enacted" />
           <span className="text-xs font-semibold text-status-enacted">
@@ -227,7 +215,7 @@ function ReplyCard({
             <p className="text-xs text-muted-foreground">{reply.author.profession}</p>
           </div>
         </div>
-        <span className="text-xs text-muted-foreground">{reply.timeAgo}</span>
+        <span className="text-xs text-muted-foreground">{reply.timeAgo ?? ""}</span>
       </div>
 
       {/* Content */}
@@ -238,14 +226,18 @@ function ReplyCard({
       {/* Actions */}
       <div className="flex items-center justify-between pt-4 border-t border-border">
         <div className="flex items-center gap-4">
-          <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <ThumbsUp className="w-3.5 h-3.5" />
+          <button
+            onClick={onUpvote}
+            disabled={!canVote}
+            className={`flex items-center gap-1.5 text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              reply.userUpvoted
+                ? "text-primary font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ThumbsUp className={`w-3.5 h-3.5 ${reply.userUpvoted ? "fill-current" : ""}`} />
             <span>{reply.upvotes}</span>
             <span>Suka</span>
-          </button>
-          <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Balas</span>
           </button>
         </div>
         <div className="flex items-center gap-2">
@@ -263,28 +255,132 @@ function ReplyCard({
   );
 }
 
-export default function ForumDetailPage() {
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default function ForumDetailPage({ params }: PageProps) {
+  const { slug } = use(params);
   const router = useRouter();
-  const [thread, setThread] = useState<Thread>(MOCK_THREAD);
+  const { user } = useAuth();
+  const [thread, setThread] = useState<ThreadDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [replySort, setReplySort] = useState<"newest" | "oldest" | "likes">("newest");
 
-  const handleBookmark = () => {
-    setThread((prev) => ({ ...prev, isBookmarked: !prev.isBookmarked }));
+  useEffect(() => {
+    setLoading(true);
+    forum
+      .detail(slug, replySort)
+      .then(setThread)
+      .catch((e) => setError(e instanceof Error ? e.message : "Thread tidak ditemukan."))
+      .finally(() => setLoading(false));
+  }, [slug, replySort]);
+
+  const handleBookmark = async () => {
+    if (!thread || !user) return;
+    try {
+      const r = await forum.bookmark(slug, !thread.isBookmarked);
+      setThread({ ...thread, isBookmarked: r.bookmarked });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUpvoteThread = async () => {
+    if (!thread || !user) return;
+    const next = !thread.userUpvoted;
+    setThread({
+      ...thread,
+      userUpvoted: next,
+      upvotes: thread.upvotes + (next ? 1 : -1),
+    });
+    try {
+      await forum.upvoteThread(slug, next);
+    } catch (e) {
+      console.error(e);
+      setThread((prev) =>
+        prev
+          ? { ...prev, userUpvoted: !next, upvotes: prev.upvotes + (next ? -1 : 1) }
+          : prev,
+      );
+    }
+  };
+
+  const handleUpvoteReply = async (replyId: number) => {
+    if (!thread || !user) return;
+    const target = thread.replies.find((r) => r.id === replyId);
+    if (!target) return;
+    const next = !target.userUpvoted;
+    setThread({
+      ...thread,
+      replies: thread.replies.map((r) =>
+        r.id === replyId
+          ? { ...r, userUpvoted: next, upvotes: r.upvotes + (next ? 1 : -1) }
+          : r,
+      ),
+    });
+    try {
+      await forum.upvoteReply(replyId, next);
+    } catch (e) {
+      console.error(e);
+      setThread((prev) =>
+        prev
+          ? {
+              ...prev,
+              replies: prev.replies.map((r) =>
+                r.id === replyId
+                  ? { ...r, userUpvoted: !next, upvotes: r.upvotes + (next ? -1 : 1) }
+                  : r,
+              ),
+            }
+          : prev,
+      );
+    }
   };
 
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!replyText.trim()) return;
-
+    if (!replyText.trim() || !thread) return;
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSubmitting(false);
-    setReplyText("");
+    try {
+      const reply = await forum.reply(slug, replyText);
+      setThread({ ...thread, replies: [...thread.replies, reply] });
+      setReplyText("");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const tier = TIER_CONFIG[thread.author.tier];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-24 max-w-7xl mx-auto px-6">
+          <div className="h-64 bg-card border border-border rounded-2xl animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+  if (error || !thread) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-24 max-w-7xl mx-auto px-6 text-center">
+          <p className="text-status-rejected">{error ?? "Thread tidak ditemukan."}</p>
+          <Link href="/forum" className="text-sm text-primary hover:underline">
+            Kembali ke forum
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const tier = TIER_CONFIG[thread.author.tier as ReplyTier] ?? TIER_CONFIG.WARGA;
 
   return (
     <div className="min-h-screen bg-background">
@@ -300,7 +396,7 @@ export default function ForumDetailPage() {
               </Link>
               <ChevronRight className="w-4 h-4" />
               <span className="text-foreground">
-                {CATEGORY_LABELS[thread.category].label}
+                {CATEGORY_LABELS[thread.category as ForumCategory]?.label ?? thread.category}
               </span>
             </div>
           </div>
@@ -315,7 +411,7 @@ export default function ForumDetailPage() {
                 {/* Meta */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[0.7rem] font-bold tracking-[0.1em] uppercase text-accent bg-accent/10 px-2.5 py-1 rounded-full">
-                    {CATEGORY_LABELS[thread.category].label}
+                    {CATEGORY_LABELS[thread.category as ForumCategory]?.label ?? thread.category}
                   </span>
                   {thread.status === "SOLVED" && (
                     <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold text-status-enacted bg-status-enacted/10 px-2 py-0.5 rounded-full">
@@ -346,7 +442,7 @@ export default function ForumDetailPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">{thread.author.profession}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground">{thread.createdAt}</span>
+                  <span className="text-xs text-muted-foreground">{thread.timeAgo}</span>
                 </div>
 
                 {/* Content */}
@@ -369,8 +465,14 @@ export default function ForumDetailPage() {
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-4 border-t border-border">
                   <div className="flex items-center gap-4">
-                    <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      <ThumbsUp className="w-4 h-4" />
+                    <button
+                      onClick={handleUpvoteThread}
+                      disabled={!user}
+                      className={`flex items-center gap-2 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        thread.userUpvoted ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <ThumbsUp className={`w-4 h-4 ${thread.userUpvoted ? "fill-current" : ""}`} />
                       <span>{thread.upvotes} Suka</span>
                     </button>
                     <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -411,17 +513,27 @@ export default function ForumDetailPage() {
                   </h2>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>Urutkan:</span>
-                    <select className="bg-card border border-border rounded-lg px-2 py-1 focus:outline-none">
-                      <option>Paling Suka</option>
-                      <option>Terbaru</option>
-                      <option>Terlama</option>
+                    <select
+                      value={replySort}
+                      onChange={(e) => setReplySort(e.target.value as typeof replySort)}
+                      className="bg-card border border-border rounded-lg px-2 py-1 focus:outline-none"
+                    >
+                      <option value="likes">Paling Suka</option>
+                      <option value="newest">Terbaru</option>
+                      <option value="oldest">Terlama</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   {thread.replies.map((reply) => (
-                    <ReplyCard key={reply.id} reply={reply} isOwner={true} />
+                    <ReplyCard
+                      key={reply.id}
+                      reply={reply}
+                      isOwner={false}
+                      onUpvote={() => handleUpvoteReply(reply.id)}
+                      canVote={!!user}
+                    />
                   ))}
                 </div>
               </div>
@@ -489,7 +601,7 @@ export default function ForumDetailPage() {
                   </div>
                   <div className="text-center p-3 bg-muted/40 rounded-xl">
                     <Clock className="w-4 h-4 text-muted-foreground mx-auto mb-1" />
-                    <p className="font-fraunces text-xl font-bold text-foreground">{thread.createdAt.split(" ")[0]}</p>
+                    <p className="font-fraunces text-xl font-bold text-foreground">{thread.timeAgo.split(" ")[0]}</p>
                     <p className="text-[0.65rem] text-muted-foreground">Dibuat</p>
                   </div>
                 </div>
