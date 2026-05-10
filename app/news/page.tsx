@@ -232,47 +232,33 @@ export default function NewsPage() {
       <div className="pt-16">
         {/* Header */}
         <div className="border-b border-border bg-muted/20">
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Newspaper className="w-5 h-5 text-accent" />
-                  <span className="text-[0.7rem] font-bold tracking-[0.15em] uppercase text-accent">
-                    Berita Terkini
-                  </span>
-                </div>
-                <h1 className="font-fraunces text-[2.5rem] font-bold text-foreground leading-tight">
-                  Berita & Informasi
-                </h1>
-                <p className="text-muted-foreground text-sm max-w-xl">
-                  Kumpulan berita terkini tentang kebijakan publik, hukum, dan isu-isu penting di Indonesia.
-                </p>
-              </div>
-
-              {/* Search */}
-              <form onSubmit={handleSearch} className="relative w-full md:w-96">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h1 className="font-fraunces text-lg sm:text-[1.75rem] font-bold text-foreground leading-tight">
+                Berita
+              </h1>
+              <form onSubmit={handleSearch} className="relative flex-1 max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <input
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari berita..."
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60"
+                  placeholder="Cari..."
+                  className="w-full pl-8 pr-3 py-2 text-xs sm:text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               </form>
             </div>
 
             {/* Category Filter */}
-            <div className="flex items-center gap-2 mt-6 flex-wrap">
-              <Filter className="w-4 h-4 text-muted-foreground" />
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.key}
                   onClick={() => handleCategoryChange(cat.key)}
-                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                  className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
                     selectedCategory === cat.key
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground border-border hover:text-foreground"
                   }`}
                 >
                   {cat.label}
@@ -283,10 +269,10 @@ export default function NewsPage() {
         </div>
 
         {/* Content */}
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           {/* Error State */}
           {error && (
-            <div className="mb-8 p-6 bg-status-rejected/10 border border-status-rejected/20 rounded-2xl">
+            <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-status-rejected/10 border border-status-rejected/20 rounded-2xl">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-status-rejected shrink-0 mt-0.5" />
                 <div>
@@ -362,11 +348,11 @@ export default function NewsPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-10">
+                <div className="flex items-center justify-center gap-2 mt-8 sm:mt-10">
                   <button
                     onClick={() => handlePageChange(page - 1)}
                     disabled={page === 1}
-                    className="flex items-center gap-1 px-4 py-2 rounded-xl border border-border text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/50 transition-colors"
+                    className="hidden sm:flex items-center gap-1 px-4 py-2 rounded-xl border border-border text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/50 transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" />
                     Sebelumnya
@@ -379,7 +365,7 @@ export default function NewsPage() {
                         <button
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
-                          className={`w-10 h-10 rounded-xl text-sm font-medium transition-colors ${
+                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-xs sm:text-sm font-medium transition-colors ${
                             page === pageNum
                               ? "bg-primary text-primary-foreground"
                               : "border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -391,10 +377,10 @@ export default function NewsPage() {
                     })}
                     {totalPages > 5 && (
                       <>
-                        <span className="text-muted-foreground px-2">...</span>
+                        <span className="text-muted-foreground px-1 sm:px-2">...</span>
                         <button
                           onClick={() => handlePageChange(totalPages)}
-                          className="w-10 h-10 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-border text-xs sm:text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                         >
                           {totalPages}
                         </button>
@@ -405,11 +391,29 @@ export default function NewsPage() {
                   <button
                     onClick={() => handlePageChange(page + 1)}
                     disabled={page >= totalPages}
-                    className="flex items-center gap-1 px-4 py-2 rounded-xl border border-border text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/50 transition-colors"
+                    className="hidden sm:flex items-center gap-1 px-4 py-2 rounded-xl border border-border text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/50 transition-colors"
                   >
                     Selanjutnya
                     <ChevronRight className="w-4 h-4" />
                   </button>
+
+                  <div className="flex sm:hidden items-center gap-2">
+                    <button
+                      onClick={() => handlePageChange(page - 1)}
+                      disabled={page === 1}
+                      className="w-9 h-9 rounded-xl border border-border text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/50 transition-colors flex items-center justify-center"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
+                    <button
+                      onClick={() => handlePageChange(page + 1)}
+                      disabled={page >= totalPages}
+                      className="w-9 h-9 rounded-xl border border-border text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/50 transition-colors flex items-center justify-center"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               )}
             </>
@@ -417,7 +421,7 @@ export default function NewsPage() {
 
           {/* Empty State */}
           {!loading && !error && articles.length === 0 && (
-            <div className="text-center py-16">
+            <div className="text-center py-12 sm:py-16">
               <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
                 <Newspaper className="w-10 h-10 text-muted-foreground" />
               </div>

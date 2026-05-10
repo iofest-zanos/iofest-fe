@@ -8,15 +8,20 @@ import {
   Flame,
   TrendingUp,
   Clock,
-  Users,
   ChevronRight,
   ThumbsUp,
   Bookmark,
   Hash,
   CheckCircle2,
+  ArrowUpDown,
+  PanelRightOpen,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { forum, ThreadListItem } from "@/lib/api";
+import {
+  FilterBottomSheet,
+  FilterOption,
+} from "@/components/ui/filter-bottom-sheet";
 
 type ThreadStatus = "HOT" | "PINNED" | "OPEN" | "SOLVED" | "CLOSED";
 type ForumCategory =
@@ -242,7 +247,7 @@ const CATEGORIES: { key: ForumCategory | "ALL"; label: string }[] = [
   { key: "NEWS_DISCUSS", label: "Diskusi Berita" },
 ];
 
-const SORT_OPTIONS = [
+const SORT_OPTIONS: FilterOption[] = [
   { key: "trending", label: "Paling Trending" },
   { key: "newest", label: "Terbaru" },
   { key: "most_replies", label: "Paling Banyak Balasan" },
@@ -272,89 +277,57 @@ function HeatBar({ score }: { score: number }) {
 }
 
 function ThreadCard({ thread }: { thread: Thread }) {
-  const status = STATUS_CONFIG[thread.status as ThreadStatus] ?? STATUS_CONFIG.OPEN;
-  const tier = TIER_CONFIG[thread.author.tier];
+  const status =
+    STATUS_CONFIG[thread.status as ThreadStatus] ?? STATUS_CONFIG.OPEN;
 
   return (
     <Link
       href={`/forum/${thread.slug}`}
-      className="group block bg-card border border-border rounded-2xl p-6 hover:border-primary/25 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/[0.04] transition-all duration-200"
+      className="block bg-card border border-border rounded-xl px-4 py-3.5 hover:border-primary/25 transition-all duration-200 active:scale-[0.99]"
     >
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={`text-[0.6rem] font-black tracking-[0.1em] uppercase px-2.5 py-1 rounded-full ${status.cls}`}
-          >
-            {status.label}
-          </span>
-          <span className="text-[0.7rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-            {CATEGORY_LABELS[thread.category as ForumCategory]?.label ?? thread.category}
-          </span>
-          {thread.isAnswered && (
-            <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold text-status-enacted bg-status-enacted/10 px-2 py-0.5 rounded-full">
-              <CheckCircle2 className="w-3 h-3" />
-              Terjawab
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+            <span
+              className={`text-[0.55rem] font-bold tracking-wide px-2 py-0.5 rounded-full ${status.cls}`}
+            >
+              {status.label}
             </span>
-          )}
-        </div>
-      </div>
-
-      <h3 className="font-fraunces text-[1.1rem] font-bold text-foreground leading-snug mb-2.5 group-hover:text-primary transition-colors">
-        {thread.title}
-      </h3>
-
-      <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-2">
-        {thread.excerpt}
-      </p>
-
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {thread.tags.map((tag) => (
-          <span
-            key={tag}
-            className="text-[0.65rem] text-accent/70 bg-accent/8 px-2 py-0.5 rounded-full font-medium"
-          >
-            #{tag}
-          </span>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground pb-4 border-b border-border">
-        <div className="w-6 h-6 rounded-full bg-accent/15 flex items-center justify-center text-[0.65rem] font-bold text-accent">
-          {thread.author.initial}
-        </div>
-        <span className="font-medium text-foreground">
-          {thread.author.name}
-        </span>
-        <span>·</span>
-        <span>{thread.author.profession}</span>
-        <span
-          className={`ml-1 text-[0.55rem] font-black tracking-wider px-1.5 py-0.5 rounded-full ${tier.cls}`}
-        >
-          {thread.author.tier}
-        </span>
-        <span className="ml-auto flex items-center gap-1">
-          <Clock className="w-3 h-3" />
-          {thread.timeAgo}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-5">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span className="font-medium text-foreground">{thread.replies}</span>
-            <span>balasan</span>
+            <span className="text-[0.55rem] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {CATEGORY_LABELS[thread.category as ForumCategory]?.label ??
+                thread.category}
+            </span>
+            {thread.isAnswered && (
+              <span className="inline-flex items-center gap-0.5 text-[0.5rem] font-bold text-status-enacted bg-status-enacted/10 px-1.5 py-0.5 rounded-full">
+                <CheckCircle2 className="w-2.5 h-2.5" />
+                Terjawab
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Users className="w-3.5 h-3.5" />
-            <span className="font-medium text-foreground">{thread.views.toLocaleString()}</span>
-            <span>dilihat</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <ThumbsUp className="w-3.5 h-3.5" />
-            <span className="font-medium text-foreground">{thread.upvotes}</span>
+
+          <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-2 mb-1 group-hover:text-primary transition-colors">
+            {thread.title}
+          </h3>
+          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1">
+            {thread.excerpt}
+          </p>
+
+          <div className="flex items-center gap-3 mt-2 text-[0.6rem] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <MessageSquare className="w-3 h-3" />
+              {thread.replies}
+            </span>
+            <span className="flex items-center gap-1">
+              <ThumbsUp className="w-3 h-3" />
+              {thread.upvotes}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {thread.timeAgo}
+            </span>
           </div>
         </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground/30 shrink-0 mt-1" />
       </div>
     </Link>
   );
@@ -364,248 +337,283 @@ export default function ForumPage() {
   const [items, setItems] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<
+    ForumCategory | "ALL"
+  >("ALL");
+  const [selectedSort, setSelectedSort] = useState("trending");
+  const [sheetSort, setSheetSort] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     forum
-      .list()
+      .list({
+        category: selectedCategory === "ALL" ? undefined : selectedCategory,
+        sort: selectedSort,
+        q: searchQuery.trim() || undefined,
+      })
       .then(setItems)
-      .catch((e) => setError(e instanceof Error ? e.message : "Gagal memuat forum."))
+      .catch((e) =>
+        setError(e instanceof Error ? e.message : "Gagal memuat forum."),
+      )
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedCategory, selectedSort, searchQuery]);
 
-  const hotThreads = items.filter((t) => t.status === "HOT" || t.heatScore >= 0.85);
+  const hotThreads = items.filter(
+    (t) => t.status === "HOT" || t.heatScore >= 0.85,
+  );
   const allThreads = items.filter((t) => t.status !== "PINNED");
-  const MOCK_THREADS = items;
+  const sortLabel =
+    SORT_OPTIONS.find((o) => o.key === selectedSort)?.label ??
+    "Paling Trending";
+
+  const sidebarContent = (
+    <>
+      <div>
+        <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">
+          Kategori
+        </p>
+        <div className="space-y-0.5">
+          {CATEGORIES.map((c) => {
+            const isAll = c.key === "ALL";
+            const isSelected = isAll
+              ? selectedCategory === "ALL"
+              : selectedCategory === c.key;
+            return (
+              <button
+                key={c.key}
+                onClick={() => setSelectedCategory(c.key as ForumCategory | "ALL")}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors flex items-center justify-between group ${
+                  isSelected
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                }`}
+              >
+                <span>{c.label}</span>
+                {c.key !== "ALL" && (
+                  <span className="text-[0.65rem] text-muted-foreground/60 group-hover:text-muted-foreground">
+                    {items.filter((t) => t.category === c.key).length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">
+          Urutkan
+        </p>
+        <div className="space-y-0.5">
+          {SORT_OPTIONS.map((s) => (
+            <button
+              key={s.key}
+              onClick={() => setSelectedSort(s.key)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                s.key === selectedSort
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Link
+        href="/forum/bookmarks"
+        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-accent/[0.06] border border-accent/15 hover:border-accent/30 transition-all group my-2"
+      >
+        <Bookmark className="w-4 h-4 text-accent shrink-0 " />
+        <span className="text-sm text-foreground group-hover:text-accent transition-colors">
+          Bookmark Saya
+        </span>
+        <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto shrink-0" />
+      </Link>
+
+      <div className="bg-card border border-border rounded-2xl p-5 space-y-4 my-2">
+        <p className="text-sm font-semibold text-foreground">Statistik Forum</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="text-center">
+            <p className="font-fraunces text-2xl font-bold text-foreground">
+              {items.length}
+            </p>
+            <p className="text-[0.65rem] text-muted-foreground">Thread</p>
+          </div>
+          <div className="text-center">
+            <p className="font-fraunces text-2xl font-bold text-foreground">
+              {items.reduce((acc, t) => acc + t.replies, 0)}
+            </p>
+            <p className="text-[0.65rem] text-muted-foreground">Balasan</p>
+          </div>
+          <div className="text-center">
+            <p className="font-fraunces text-2xl font-bold text-foreground">
+              {items.reduce((acc, t) => acc + t.views, 0).toLocaleString()}
+            </p>
+            <p className="text-[0.65rem] text-muted-foreground">Views</p>
+          </div>
+          <div className="text-center">
+            <p className="font-fraunces text-2xl font-bold text-primary">128</p>
+            <p className="text-[0.65rem] text-muted-foreground">Online</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-accent/[0.06] border border-accent/15 rounded-xl p-4 space-y-3">
+        <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Hash className="w-4 h-4 text-accent" />
+          Panduan Forum
+        </p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Pastikan diskusi tetap konstruktif dan menghormati perbedaan pendapat.
+        </p>
+        <Link
+          href="/forum/guidelines"
+          className="text-xs text-accent font-medium hover:underline flex items-center gap-1"
+        >
+          Baca panduan lengkap
+          <ChevronRight className="w-3 h-3" />
+        </Link>
+      </div>
+
+      <div className="my-2">
+        <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">
+          Tag Populer
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            "privasi",
+            "hukum",
+            "AI",
+            "civic-tech",
+            "DPR",
+            "UU-PDP",
+            "kampus",
+            "putusan-MK",
+          ].map((tag) => (
+            <button
+              key={tag}
+              className="text-[0.65rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full hover:bg-accent/10 hover:text-accent transition-colors"
+            >
+              #{tag}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
       <div className="pt-16">
-        {/* Page header */}
+        {/* ── Header + search + filter ── */}
         <div className="border-b border-border bg-muted/20">
-          <div className="max-w-7xl mx-auto px-6 py-10">
-            <div className="flex items-end justify-between gap-8">
-              <div className="space-y-2">
-                <p className="text-[0.7rem] font-bold tracking-[0.15em] uppercase text-primary">
-                  Komunitas
-                </p>
-                <h1 className="font-fraunces text-[2.5rem] font-bold text-foreground leading-tight">
-                  Forum Diskusi
-                </h1>
-                <p className="text-muted-foreground text-sm max-w-xl">
-                  Ruang diskusi terbuka untuk berbagi pandangan, bertanya, dan
-                  berdiskusi tentang kebijakan publik, hukum, dan isu-isu sipil.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="relative w-72">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="search"
-                    placeholder="Cari thread diskusi..."
-                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60"
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+            <div className="flex items-center justify-between gap-3 mb-3 sm:mb-4">
+              <h1 className="font-fraunces text-lg sm:text-[1.75rem] font-bold text-foreground leading-tight">
+                Forum Diskusi
+              </h1>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                  title={
+                    sidebarOpen ? "Sembunyikan filter" : "Tampilkan filter"
+                  }
+                >
+                  <PanelRightOpen
+                    className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarOpen ? "rotate-180" : ""}`}
                   />
-                </div>
+                  <span className="hidden sm:inline">Filter</span>
+                </button>
                 <Link
                   href="/forum/new"
-                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20"
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl font-semibold text-xs sm:text-sm hover:bg-primary/90 transition-all shrink-0"
                 >
-                  <MessageSquare className="w-4 h-4" />
-                  Thread Baru
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Thread Baru</span>
                 </Link>
               </div>
+            </div>
+
+            {/* Search bar */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari thread diskusi..."
+                className="w-full pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60"
+              />
+            </div>
+
+            {/* Sort button */}
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setSheetSort(true)}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-border bg-card text-muted-foreground"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                {sortLabel}
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {items.length} thread
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
-          <aside className="w-64 shrink-0 space-y-6">
-            <div>
-              <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">
-                Kategori
-              </p>
-              <div className="space-y-0.5">
-                {CATEGORIES.map((c) => (
-                  <button
-                    key={c.key}
-                    className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors flex items-center justify-between group ${
-                      c.key === "ALL"
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                    }`}
-                  >
-                    <span>{c.label}</span>
-                    {c.key !== "ALL" && (
-                      <span className="text-[0.65rem] text-muted-foreground/60 group-hover:text-muted-foreground">
-                        {
-                          MOCK_THREADS.filter((t) => t.category === c.key)
-                            .length
-                        }
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col lg:flex-row gap-6 lg:gap-8">
+          {/* Mobile drawer backdrop */}
+          {sidebarOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
 
-            <div>
-              <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">
-                Urutkan
-              </p>
-              <div className="space-y-0.5">
-                {SORT_OPTIONS.map((s) => (
-                  <button
-                    key={s.key}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                      s.key === "trending"
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* Mobile sidebar drawer */}
+          <aside
+            className={`fixed left-0 top-16 bottom-0 z-50 w-64 bg-card border-r border-border overflow-y-auto p-4 sm:p-6 space-y-6 transition-transform duration-300 lg:hidden ${
+              sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            {sidebarContent}
+          </aside>
 
-            <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
-              <p className="text-sm font-semibold text-foreground">
-                Statistik Forum
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="text-center">
-                  <p className="font-fraunces text-2xl font-bold text-foreground">
-                    {MOCK_THREADS.length}
-                  </p>
-                  <p className="text-[0.65rem] text-muted-foreground">Thread</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-fraunces text-2xl font-bold text-foreground">
-                    {MOCK_THREADS.reduce((acc, t) => acc + t.replies, 0)}
-                  </p>
-                  <p className="text-[0.65rem] text-muted-foreground">
-                    Balasan
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="font-fraunces text-2xl font-bold text-foreground">
-                    {MOCK_THREADS.reduce(
-                      (acc, t) => acc + t.views,
-                      0,
-                    ).toLocaleString()}
-                  </p>
-                  <p className="text-[0.65rem] text-muted-foreground">Views</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-fraunces text-2xl font-bold text-primary">
-                    128
-                  </p>
-                  <p className="text-[0.65rem] text-muted-foreground">Online</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-accent/[0.06] border border-accent/15 rounded-xl p-4 space-y-3">
-              <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Hash className="w-4 h-4 text-accent" />
-                Panduan Forum
-              </p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Pastikan diskusi tetap konstruktif dan menghormati perbedaan
-                pendapat.
-              </p>
-              <Link
-                href="/forum/guidelines"
-                className="text-xs text-accent font-medium hover:underline flex items-center gap-1"
-              >
-                Baca panduan lengkap
-                <ChevronRight className="w-3 h-3" />
-              </Link>
-            </div>
-
-            {/* Popular tags */}
-            <div>
-              <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">
-                Tag Populer
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  "privasi",
-                  "hukum",
-                  "AI",
-                  "civic-tech",
-                  "DPR",
-                  "UU-PDP",
-                  "kampus",
-                  "putusan-MK",
-                ].map((tag) => (
-                  <button
-                    key={tag}
-                    className="text-[0.65rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full hover:bg-accent/10 hover:text-accent transition-colors"
-                  >
-                    #{tag}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* Desktop sidebar — collapsible inline */}
+          <aside
+            className={`hidden lg:block overflow-hidden transition-all duration-300 shrink-0 ${sidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0"}`}
+          >
+            {sidebarContent}
           </aside>
 
           {/* Main content */}
-          <main className="flex-1 min-w-0 space-y-8">
-            {/* Bookmarked threads link */}
+          <main className="flex-1 min-w-0 space-y-6 sm:space-y-8">
             <section>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Bookmark className="w-4 h-4 text-accent" />
-                  <h2 className="text-sm font-semibold text-foreground">
-                    Bookmark Diskusi
-                  </h2>
-                </div>
-                <Link
-                  href="/forum/bookmarks"
-                  className="text-xs text-accent hover:underline flex items-center gap-1"
-                >
-                  Lihat semua
-                  <ChevronRight className="w-3 h-3" />
-                </Link>
-              </div>
-              <Link
-                href="/forum/bookmarks"
-                className="flex items-center gap-3 bg-accent/[0.06] border border-accent/15 rounded-2xl p-5 hover:border-accent/30 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                  <Bookmark className="w-6 h-6 text-accent" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground group-hover:text-accent transition-colors">
-                    Lihat diskusi yang Anda simpan
-                  </p>
-                </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
-              </Link>
-            </section>
-
-            <section>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
                 <Flame className="w-4 h-4 text-status-hot" />
                 <h2 className="text-sm font-semibold text-foreground">
                   Sedang Trending
                 </h2>
-                <span className="text-xs text-muted-foreground ml-1">
-                  · paling aktif minggu ini
+                <span className="text-xs text-muted-foreground">
+                  · minggu ini
                 </span>
               </div>
               {loading ? (
                 <div className="space-y-3">
-                  <div className="h-32 bg-card border border-border rounded-2xl animate-pulse" />
-                  <div className="h-32 bg-card border border-border rounded-2xl animate-pulse" />
+                  <div className="h-28 bg-card border border-border rounded-xl animate-pulse" />
+                  <div className="h-28 bg-card border border-border rounded-xl animate-pulse" />
                 </div>
               ) : error ? (
                 <p className="text-sm text-status-rejected">{error}</p>
               ) : (
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {hotThreads.slice(0, 3).map((thread) => (
                     <ThreadCard key={thread.id} thread={thread} />
                   ))}
@@ -614,25 +622,25 @@ export default function ForumPage() {
             </section>
 
             <section>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-muted-foreground" />
                   <h2 className="text-sm font-semibold text-foreground">
                     Semua Thread
                   </h2>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Menampilkan {allThreads.length} thread</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({allThreads.length})
+                  </span>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {allThreads.map((thread) => (
                   <ThreadCard key={thread.id} thread={thread} />
                 ))}
               </div>
             </section>
 
-            <div className="flex justify-center pt-4">
+            <div className="flex justify-center pt-2 sm:pt-4">
               <button className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-6 py-3 border border-border rounded-xl hover:bg-muted/50">
                 Muat lebih banyak
                 <ChevronRight className="w-4 h-4" />
@@ -641,6 +649,17 @@ export default function ForumPage() {
           </main>
         </div>
       </div>
+
+      {/* Sort bottom sheet */}
+      <FilterBottomSheet
+        open={sheetSort}
+        onClose={() => setSheetSort(false)}
+        title="Urutkan Thread"
+        options={SORT_OPTIONS}
+        selected={selectedSort}
+        onSelect={(k) => setSelectedSort(k)}
+        showSearch={false}
+      />
     </div>
   );
 }

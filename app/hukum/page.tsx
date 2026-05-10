@@ -149,74 +149,38 @@ const RECENT_SEARCHES = [
 function LawCard({ law }: { law: LawDocument }) {
   const typeConfig = LAW_TYPE_CONFIG[law.type as LawType] ?? LAW_TYPE_CONFIG.UU;
   const statusConfig = STATUS_CONFIG[law.status as LawStatus] ?? STATUS_CONFIG.BERLAKU;
-  const Icon = typeConfig.icon;
 
   return (
-    <div className="group bg-card border border-border rounded-2xl p-6 hover:border-primary/25 hover:shadow-lg hover:shadow-foreground/[0.04] transition-all duration-200">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-xl ${typeConfig.color} flex items-center justify-center text-white shrink-0`}>
-            <Icon className="w-6 h-6" />
+    <div className="group bg-card border border-border rounded-xl px-4 py-3.5 hover:border-primary/25 transition-all duration-200">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+            <span className={`text-[0.55rem] font-bold tracking-wide px-2 py-0.5 rounded ${typeConfig.color} text-white`}>
+              {law.type} {law.number}/{law.year}
+            </span>
+            <span className={`text-[0.5rem] font-medium px-1.5 py-0.5 rounded-full ${statusConfig.cls}`}>
+              {statusConfig.label}
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className={`text-[0.65rem] font-black tracking-wider px-2 py-0.5 rounded ${typeConfig.color} text-white`}>
-                {law.type}
-              </span>
-              <span className="text-[0.65rem] text-muted-foreground">
-                No. {law.number} Tahun {law.year}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {law.category} · {law.dateEnacted}
-            </p>
+          <Link href={`/hukum/${law.code}`}>
+            <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-2 mb-1 group-hover:text-primary transition-colors">
+              {law.title}
+            </h3>
+          </Link>
+          <p className="text-xs text-muted-foreground line-clamp-1">{law.description}</p>
+          <div className="flex items-center gap-3 mt-2 text-[0.6rem] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <BookOpen className="w-3 h-3" />
+              {law.views.toLocaleString()}x
+            </span>
+            {law.dateEnacted && <span>{law.dateEnacted}</span>}
           </div>
         </div>
-        <span className={`text-[0.65rem] font-medium px-2.5 py-1 rounded-full ${statusConfig.cls}`}>
-          {statusConfig.label}
-        </span>
-      </div>
-
-      {/* Title */}
-      <Link href={`/hukum/${law.code}`}>
-        <h3 className="font-fraunces text-lg font-bold text-foreground leading-snug mb-2 group-hover:text-primary transition-colors cursor-pointer">
-          {law.title}
-        </h3>
-      </Link>
-
-      {/* Description */}
-      <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-2">
-        {law.description}
-      </p>
-
-      {/* Tags */}
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {law.tags.map((tag) => (
-          <span key={tag} className="text-[0.65rem] text-accent/70 bg-accent/8 px-2 py-0.5 rounded-full">
-            #{tag}
-          </span>
-        ))}
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-border">
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <BookOpen className="w-3.5 h-3.5" />
-            {law.views.toLocaleString()}x dibaca
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
-            <Bookmark className={`w-4 h-4 ${law.bookmarked ? "fill-primary text-primary" : ""}`} />
+        <div className="flex items-center gap-1 shrink-0 mt-0.5">
+          <button className="p-1.5 text-muted-foreground hover:text-primary transition-colors">
+            <Bookmark className={`w-3.5 h-3.5 ${law.bookmarked ? "fill-primary text-primary" : ""}`} />
           </button>
-          <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors">
-            <Share2 className="w-4 h-4" />
-          </button>
-          <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors">
-            <Download className="w-4 h-4" />
-          </button>
+          <ChevronRight className="w-4 h-4 text-muted-foreground/30" />
         </div>
       </div>
     </div>
@@ -257,25 +221,22 @@ export default function HukumPage() {
 
       <div className="pt-16">
         {/* Hero Section - Search */}
-        <div className={`${hasSearched ? "border-b border-border bg-muted/20" : "bg-muted/20 min-h-[50vh] flex items-center"} transition-all`}>
-          <div className="max-w-4xl mx-auto px-6 py-12 w-full">
+        <div className={`${hasSearched ? "border-b border-border bg-muted/20" : "bg-muted/20"} transition-all`}>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8 w-full">
             {!hasSearched && (
-              <div className="text-center mb-8 space-y-3">
-                <div className="inline-flex items-center gap-2 text-primary">
-                  <Scale className="w-8 h-8" />
-                </div>
-                <h1 className="font-fraunces text-4xl font-bold text-foreground">
-                  Pencarian Hukum Indonesia
+              <div className="mb-3 sm:mb-6 space-y-1.5">
+                <h1 className="font-fraunces text-xl sm:text-3xl font-bold text-foreground">
+                  Pencarian Hukum
                 </h1>
-                <p className="text-muted-foreground max-w-lg mx-auto">
-                  Cari undang-undang, peraturan pemerintah, dan dokumen hukum lainnya dari database lengkap kami.
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-lg">
+                  Cari undang-undang, peraturan, dan dokumen hukum di Indonesia.
                 </p>
               </div>
             )}
 
             {hasSearched && (
-              <div className="mb-6">
-                <Link href="/hukum" onClick={() => setHasSearched(false)} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-4">
+              <div className="mb-4 sm:mb-6">
+                <Link href="/hukum" onClick={() => setHasSearched(false)} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-3 sm:mb-4">
                   <X className="w-4 h-4" />
                   Reset pencarian
                 </Link>
@@ -285,27 +246,46 @@ export default function HukumPage() {
             {/* Search Bar */}
             <form onSubmit={handleSearch} className="relative">
               <div className="relative">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-muted-foreground" />
                 <input
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Cari undang-undang, peraturan, atau topik hukum..."
-                  className="w-full pl-14 pr-32 py-4 text-base bg-card border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60 shadow-lg shadow-foreground/[0.02]"
+                  className="w-full pl-11 sm:pl-14 pr-28 sm:pr-32 py-3 sm:py-4 text-sm sm:text-base bg-card border border-border rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60 shadow-lg shadow-foreground/[0.02]"
                 />
                 <button
                   type="submit"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary text-primary-foreground px-5 py-2 rounded-xl font-medium text-sm hover:bg-primary/90 transition-all"
+                  className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-primary text-primary-foreground px-4 sm:px-5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-medium text-sm hover:bg-primary/90 transition-all"
                 >
                   Cari
                 </button>
               </div>
             </form>
 
+            {/* Filter pills for mobile */}
+            {hasSearched && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 mt-3">
+                <button onClick={() => setSelectedType("ALL")} className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${selectedType === "ALL" ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"}`}>Semua</button>
+                {(["UU", "PP", "PERPRES", "PERDA"] as LawType[]).map((t) => (
+                  <button key={t} onClick={() => setSelectedType(t)} className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${selectedType === t ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"}`}>
+                    {LAW_TYPE_CONFIG[t]?.label ?? t}
+                  </button>
+                ))}
+                <span className="shrink-0 w-px h-5 bg-border mx-1" />
+                <button onClick={() => setSelectedStatus("ALL")} className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${selectedStatus === "ALL" ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"}`}>Semua Status</button>
+                {(["BERLAKU", "DIREVISI"] as LawStatus[]).map((s) => (
+                  <button key={s} onClick={() => setSelectedStatus(s)} className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${selectedStatus === s ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"}`}>
+                    {STATUS_CONFIG[s]?.label ?? s}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Quick Filters */}
             {!hasSearched && (
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-                <span className="text-sm text-muted-foreground mr-2">Pencarian populer:</span>
+              <div className="mt-3 sm:mt-4 flex flex-wrap items-center justify-center gap-2">
+                <span className="text-xs text-muted-foreground w-full text-center sm:w-auto">Pencarian populer:</span>
                 {POPULAR_SEARCHES.map((term) => (
                   <button
                     key={term}
@@ -313,7 +293,7 @@ export default function HukumPage() {
                       setSearchQuery(term);
                       setHasSearched(true);
                     }}
-                    className="text-sm px-3 py-1.5 bg-card border border-border rounded-full text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
+                    className="text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 bg-card border border-border rounded-full text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
                   >
                     {term}
                   </button>
@@ -323,8 +303,8 @@ export default function HukumPage() {
 
             {/* Recent Searches */}
             {!hasSearched && (
-              <div className="mt-8 pt-6 border-t border-border">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+              <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-3">
                   <History className="w-4 h-4" />
                   <span>Pencarian terakhir</span>
                 </div>
@@ -336,7 +316,7 @@ export default function HukumPage() {
                         setSearchQuery(term);
                         setHasSearched(true);
                       }}
-                      className="text-sm px-3 py-1.5 bg-muted/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all flex items-center gap-2"
+                      className="text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 bg-muted/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all flex items-center gap-2"
                     >
                       <History className="w-3.5 h-3.5" />
                       {term}
@@ -350,10 +330,10 @@ export default function HukumPage() {
 
         {/* Results Section */}
         {hasSearched && (
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            <div className="flex gap-8">
-              {/* Sidebar Filters */}
-              <aside className="w-64 shrink-0 space-y-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+              {/* Sidebar Filters — desktop only */}
+              <aside className="hidden lg:block w-64 shrink-0 space-y-6">
                 {/* Filter by Type */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
@@ -447,58 +427,43 @@ export default function HukumPage() {
 
               {/* Results */}
               <main className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-lg font-semibold text-foreground">
-                      Hasil Pencarian
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {filteredLaws.length} dokumen ditemukan
-                      {searchQuery && ` untuk "${searchQuery}"`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Urutkan:</span>
-                    <select className="bg-card border border-border rounded-lg px-2 py-1.5 text-sm focus:outline-none">
-                      <option>Paling Relevan</option>
-                      <option>Terbaru</option>
-                      <option>Paling Banyak Dibaca</option>
-                    </select>
-                  </div>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-foreground">Hasil ({filteredLaws.length})</h2>
+                  <select className="bg-card border border-border rounded-lg px-2 py-1 text-xs focus:outline-none">
+                    <option>Relevan</option>
+                    <option>Terbaru</option>
+                    <option>Dibaca</option>
+                  </select>
                 </div>
 
                 {loading ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {[0, 1, 2].map((i) => (
-                      <div key={i} className="h-44 bg-card border border-border rounded-2xl animate-pulse" />
+                      <div key={i} className="h-24 bg-card border border-border rounded-xl animate-pulse" />
                     ))}
                   </div>
                 ) : filteredLaws.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-2 sm:space-y-3">
                     {filteredLaws.map((law) => (
                       <LawCard key={law.id} law={law} />
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-16 bg-card border border-border rounded-2xl">
-                    <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Search className="w-10 h-10 text-muted-foreground" />
+                  <div className="text-center py-10 bg-card border border-border rounded-xl">
+                    <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Search className="w-6 h-6 text-muted-foreground" />
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                      Tidak ada hasil
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-                      Coba gunakan kata kunci yang berbeda atau kurangi filter pencarian
-                    </p>
+                    <p className="text-sm font-semibold text-foreground mb-1">Tidak ada hasil</p>
+                    <p className="text-xs text-muted-foreground mb-4">Coba kata kunci berbeda atau kurangi filter</p>
                     <button
                       onClick={() => {
                         setSearchQuery("");
                         setSelectedType("ALL");
                         setSelectedStatus("ALL");
                       }}
-                      className="text-sm text-primary hover:underline"
+                      className="text-xs text-primary hover:underline"
                     >
-                      Hapus semua filter
+                      Hapus filter
                     </button>
                   </div>
                 )}
@@ -509,12 +474,12 @@ export default function HukumPage() {
 
         {/* Categories Grid - Show when not searching */}
         {!hasSearched && (
-          <div className="max-w-7xl mx-auto px-6 py-12">
-            <h2 className="text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-accent" />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+            <h2 className="text-sm sm:text-base font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-accent" />
               Jelajahi per Kategori
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
               {[
                 { name: "Teknologi & Informasi", count: 245, icon: FileText },
                 { name: "Ketenagakerjaan", count: 189, icon: Gavel },
@@ -527,15 +492,15 @@ export default function HukumPage() {
               ].map((cat) => (
                 <button
                   key={cat.name}
-                  onClick={() => setHasSearched(true)}
-                  className="flex items-center gap-3 p-4 bg-card border border-border rounded-xl hover:border-primary/25 hover:shadow-lg hover:shadow-foreground/[0.04] transition-all text-left"
+                  onClick={() => { setSearchQuery(cat.name); setHasSearched(true); }}
+                  className="flex flex-col items-center gap-1.5 p-3 bg-card border border-border rounded-xl hover:border-primary/25 transition-all text-center"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
-                    <cat.icon className="w-5 h-5" />
+                  <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
+                    <cat.icon className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="font-medium text-foreground text-sm">{cat.name}</p>
-                    <p className="text-xs text-muted-foreground">{cat.count} dokumen</p>
+                    <p className="font-medium text-foreground text-xs leading-tight">{cat.name}</p>
+                    <p className="text-[0.6rem] text-muted-foreground">{cat.count}</p>
                   </div>
                 </button>
               ))}

@@ -402,8 +402,8 @@ export default function ForumDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="grid grid-cols-[1fr_320px] gap-8 items-start">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 lg:gap-8 items-start">
             {/* Main content */}
             <div className="space-y-6">
               {/* Thread header */}
@@ -463,8 +463,8 @@ export default function ForumDetailPage({ params }: PageProps) {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-between pt-4 border-t border-border">
-                  <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-border">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                     <button
                       onClick={handleUpvoteThread}
                       disabled={!user}
@@ -487,18 +487,18 @@ export default function ForumDetailPage({ params }: PageProps) {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleBookmark}
-                      className={`flex items-center gap-2 text-sm px-4 py-2 rounded-xl border transition-all ${
+                      className={`flex items-center gap-2 text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-xl border transition-all ${
                         thread.isBookmarked
                           ? "bg-accent/10 border-accent/30 text-accent"
                           : "border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       }`}
                     >
                       <Bookmark className={`w-4 h-4 ${thread.isBookmarked ? "fill-current" : ""}`} />
-                      {thread.isBookmarked ? "Tersimpan" : "Simpan"}
+                      <span className="hidden sm:inline">{thread.isBookmarked ? "Tersimpan" : "Simpan"}</span>
                     </button>
-                    <button className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all">
+                    <button className="flex items-center gap-2 text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all">
                       <Share2 className="w-4 h-4" />
-                      Bagikan
+                      <span className="hidden sm:inline">Bagikan</span>
                     </button>
                   </div>
                 </div>
@@ -551,14 +551,14 @@ export default function ForumDetailPage({ params }: PageProps) {
                     placeholder="Bagikan pendapat atau tanggapan Anda..."
                     className="w-full min-h-[120px] px-4 py-3 text-sm bg-muted/30 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-y leading-relaxed"
                   />
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <p className="text-xs text-muted-foreground order-2 sm:order-1">
                       Tetap sopan dan konstruktif dalam berdiskusi
                     </p>
                     <button
                       type="submit"
                       disabled={!replyText.trim() || isSubmitting}
-                      className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-all"
+                      className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-all order-1 sm:order-2 w-full sm:w-auto justify-center"
                     >
                       {isSubmitting ? (
                         <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
@@ -573,7 +573,7 @@ export default function ForumDetailPage({ params }: PageProps) {
             </div>
 
             {/* Sidebar */}
-            <aside className="space-y-5 sticky top-24">
+            <aside className="space-y-5 lg:sticky lg:top-24">
               {/* Thread stats */}
               <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
                 <p className="text-sm font-semibold text-foreground">Statistik Thread</p>

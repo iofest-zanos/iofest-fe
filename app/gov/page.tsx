@@ -238,8 +238,8 @@ function EditStatusModal({ issue, isOpen, onClose, onSave }: EditStatusModalProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-card border border-border rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto animate-fadeIn sm:mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -270,7 +270,7 @@ function EditStatusModal({ issue, isOpen, onClose, onSave }: EditStatusModalProp
           {/* Status Selection */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-foreground">Status Baru</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                 <button
                   key={key}
@@ -445,8 +445,8 @@ export default function GovDashboardPage() {
       <div className="pt-16">
         {/* Header */}
         <div className="border-b border-border bg-muted/20">
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            <div className="flex items-start justify-between gap-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 sm:gap-8">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Shield className="w-5 h-5 text-primary" />
@@ -454,7 +454,7 @@ export default function GovDashboardPage() {
                     Government Dashboard
                   </span>
                 </div>
-                <h1 className="font-fraunces text-[2.5rem] font-bold text-foreground leading-tight">
+                <h1 className="font-fraunces text-[1.75rem] sm:text-[2.5rem] font-bold text-foreground leading-tight">
                   Manajemen Isu Kebijakan
                 </h1>
                 <p className="text-muted-foreground text-sm max-w-xl">
@@ -464,28 +464,28 @@ export default function GovDashboardPage() {
               </div>
 
               {/* Quick Stats */}
-              <div className="flex items-center gap-3">
-                <div className="bg-card border border-border rounded-xl p-4 text-center min-w-[100px]">
-                  <p className="font-fraunces text-2xl font-bold text-status-hot">{STATISTICS.hotIssues}</p>
-                  <p className="text-[0.65rem] text-muted-foreground">Isu Trending</p>
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <div className="flex-1 sm:flex-none bg-card border border-border rounded-xl p-3 sm:p-4 text-center min-w-0 sm:min-w-[100px]">
+                  <p className="font-fraunces text-lg sm:text-2xl font-bold text-status-hot">{STATISTICS.hotIssues}</p>
+                  <p className="text-[0.6rem] sm:text-[0.65rem] text-muted-foreground">Trending</p>
                 </div>
-                <div className="bg-card border border-border rounded-xl p-4 text-center min-w-[100px]">
-                  <p className="font-fraunces text-2xl font-bold text-status-forwarded">{STATISTICS.forwarded}</p>
-                  <p className="text-[0.65rem] text-muted-foreground">Diteruskan</p>
+                <div className="flex-1 sm:flex-none bg-card border border-border rounded-xl p-3 sm:p-4 text-center min-w-0 sm:min-w-[100px]">
+                  <p className="font-fraunces text-lg sm:text-2xl font-bold text-status-forwarded">{STATISTICS.forwarded}</p>
+                  <p className="text-[0.6rem] sm:text-[0.65rem] text-muted-foreground">Diteruskan</p>
                 </div>
-                <div className="bg-card border border-border rounded-xl p-4 text-center min-w-[100px]">
-                  <p className="font-fraunces text-2xl font-bold text-status-enacted">{STATISTICS.enacted}</p>
-                  <p className="text-[0.65rem] text-muted-foreground">Terealisasi</p>
+                <div className="flex-1 sm:flex-none bg-card border border-border rounded-xl p-3 sm:p-4 text-center min-w-0 sm:min-w-[100px]">
+                  <p className="font-fraunces text-lg sm:text-2xl font-bold text-status-enacted">{STATISTICS.enacted}</p>
+                  <p className="text-[0.6rem] sm:text-[0.65rem] text-muted-foreground">Terealisasi</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           {/* Filters & Search */}
-          <div className="flex items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
               {[
                 { key: "ALL", label: "Semua" },
                 { key: "HOT", label: "Trending" },
@@ -497,7 +497,7 @@ export default function GovDashboardPage() {
                 <button
                   key={status.key}
                   onClick={() => setFilterStatus(status.key as IssueStatus | "ALL")}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  className={`shrink-0 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                     filterStatus === status.key
                       ? "bg-primary text-primary-foreground"
                       : "bg-card border border-border text-muted-foreground hover:text-foreground"
@@ -508,8 +508,8 @@ export default function GovDashboardPage() {
               ))}
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="relative w-72">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-none sm:w-72">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="search"
@@ -519,7 +519,7 @@ export default function GovDashboardPage() {
                   className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60"
                 />
               </div>
-              <button className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-xl text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <button className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-xl text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <Download className="w-4 h-4" />
                 Export
               </button>
@@ -528,15 +528,15 @@ export default function GovDashboardPage() {
 
           {/* Hot Issues Alert */}
           {hotIssues.length > 0 && filterStatus === "ALL" && !searchQuery && (
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <Flame className="w-5 h-5 text-status-hot" />
-                <h2 className="text-lg font-semibold text-foreground">Perhatian Khusus - Isu Trending</h2>
+                <h2 className="text-base sm:text-lg font-semibold text-foreground">Perhatian Khusus - Isu Trending</h2>
                 <span className="text-xs text-muted-foreground">
-                  ({hotIssues.length} isu memerlukan tindak lanjut)
+                  ({hotIssues.length} isu)
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {hotIssues.map((issue) => (
                   <div
                     key={issue.id}
@@ -707,69 +707,69 @@ export default function GovDashboardPage() {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-4 gap-4 mt-8">
-            <div className="bg-card border border-border rounded-2xl p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-status-hot/10 flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-status-hot" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 sm:mt-8">
+            <div className="bg-card border border-border rounded-xl sm:rounded-2xl p-4 sm:p-5">
+              <div className="flex items-center gap-3 mb-2 sm:mb-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-status-hot/10 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-status-hot" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{hotIssues.length}</p>
-                  <p className="text-xs text-muted-foreground">Isu Trending</p>
+                  <p className="text-lg sm:text-2xl font-bold text-foreground">{hotIssues.length}</p>
+                  <p className="text-[0.65rem] sm:text-xs text-muted-foreground">Isu Trending</p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground hidden sm:block">
                 Memerlukan perhatian segera
               </p>
             </div>
 
-            <div className="bg-card border border-border rounded-2xl p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-status-forwarded/10 flex items-center justify-center">
-                  <ArrowUpRight className="w-5 h-5 text-status-forwarded" />
+            <div className="bg-card border border-border rounded-xl sm:rounded-2xl p-4 sm:p-5">
+              <div className="flex items-center gap-3 mb-2 sm:mb-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-status-forwarded/10 flex items-center justify-center">
+                  <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-status-forwarded" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-lg sm:text-2xl font-bold text-foreground">
                     {issues.filter((i) => i.status === "FORWARDED").length}
                   </p>
-                  <p className="text-xs text-muted-foreground">Diteruskan</p>
+                  <p className="text-[0.65rem] sm:text-xs text-muted-foreground">Diteruskan</p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground hidden sm:block">
                 Menunggu respons instansi
               </p>
             </div>
 
-            <div className="bg-card border border-border rounded-2xl p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center">
-                  <BarChart3 className="w-5 h-5 text-[#4F46E5]" />
+            <div className="bg-card border border-border rounded-xl sm:rounded-2xl p-4 sm:p-5">
+              <div className="flex items-center gap-3 mb-2 sm:mb-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-[#4F46E5]/10 flex items-center justify-center">
+                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-[#4F46E5]" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-lg sm:text-2xl font-bold text-foreground">
                     {issues.filter((i) => i.status === "LEGISLATION").length}
                   </p>
-                  <p className="text-xs text-muted-foreground">Dalam Legislasi</p>
+                  <p className="text-[0.65rem] sm:text-xs text-muted-foreground">Dalam Legislasi</p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground hidden sm:block">
                 Proses pembahasan DPR/DPRD
               </p>
             </div>
 
-            <div className="bg-card border border-border rounded-2xl p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-status-enacted/10 flex items-center justify-center">
-                  <CheckCircle2 className="w-5 h-5 text-status-enacted" />
+            <div className="bg-card border border-border rounded-xl sm:rounded-2xl p-4 sm:p-5">
+              <div className="flex items-center gap-3 mb-2 sm:mb-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-status-enacted/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-status-enacted" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-lg sm:text-2xl font-bold text-foreground">
                     {issues.filter((i) => i.status === "ENACTED").length}
                   </p>
-                  <p className="text-xs text-muted-foreground">Terealisasi</p>
+                  <p className="text-[0.65rem] sm:text-xs text-muted-foreground">Terealisasi</p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground hidden sm:block">
                 Sudah menjadi kebijakan
               </p>
             </div>

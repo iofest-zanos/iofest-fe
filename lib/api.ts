@@ -373,6 +373,38 @@ export const news = {
       ),
 };
 
+export interface ExpertApplicationData {
+  id: number;
+  application_type: "INSTITUTION" | "INDEPENDENT";
+  profession: string;
+  license_number: string;
+  publication_link: string;
+  portfolio_notes: string;
+  linkedin_url: string;
+  status: "SUBMITTED" | "REVIEW" | "REVISION" | "APPROVED" | "REJECTED";
+  status_label: string;
+  admin_notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExpertStatusResponse {
+  has_applied: boolean;
+  application: ExpertApplicationData | null;
+}
+
+export const expert = {
+  apply: (body: {
+    application_type: string;
+    profession: string;
+    license_number?: string;
+    publication_link?: string;
+    portfolio_notes?: string;
+    linkedin_url: string;
+  }) => apiRequest<ExpertApplicationData>("/auth/expert-apply", { method: "POST", body }),
+  status: () => apiRequest<ExpertStatusResponse>("/auth/expert-status"),
+};
+
 export const ai = {
   legalContext: (slug: string) =>
     apiRequest<{ laws: { id: string; type: string; number: string; title: string; relevance: number; url: string }[] }>(

@@ -711,9 +711,9 @@ export default function DeliberationPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-          <div className="bg-card border border-border rounded-2xl p-8 space-y-5">
-            <div className="flex items-center gap-2 flex-wrap">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+          <div className="bg-card border border-border rounded-2xl p-5 sm:p-8 space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
               {issue.is_trending && (
                 <span className="text-[0.65rem] font-black tracking-[0.1em] uppercase bg-status-hot text-white px-3 py-1 rounded-full">
                   Trending
@@ -722,57 +722,55 @@ export default function DeliberationPage({ params }: PageProps) {
               <StageBadge stageKey={currentStage} />
               <span className="text-[0.7rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">{issue.category}</span>
               <span className="text-[0.7rem] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">{issue.scopeLabel}</span>
-              <div className="ml-auto flex items-center gap-2">
+              <div className="w-full sm:ml-auto sm:w-auto flex items-center gap-2 mt-2 sm:mt-0">
                 <button
                   onClick={handleSubscribe}
                   disabled={!user}
-                  className={`inline-flex items-center gap-2 text-sm px-4 py-2 rounded-xl border font-medium transition-all disabled:opacity-50 ${
+                  className={`inline-flex items-center gap-2 text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-xl border font-medium transition-all disabled:opacity-50 ${
                     subscribed
                       ? "bg-primary/10 border-primary/25 text-primary"
                       : "border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
                   <Bell className="w-3.5 h-3.5" />
-                  {subscribed ? "Berlangganan" : "Ikuti Isu"}
+                  <span className="hidden sm:inline">{subscribed ? "Berlangganan" : "Ikuti Isu"}</span>
+                  <span className="sm:hidden">{subscribed ? "Ikuti" : "Ikuti"}</span>
                 </button>
-                <button className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all">
+                <button className="inline-flex items-center gap-2 text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all">
                   <Share2 className="w-3.5 h-3.5" />
-                  Bagikan
+                  <span className="hidden sm:inline">Bagikan</span>
                 </button>
               </div>
             </div>
 
-            <h1 className="font-fraunces text-[2rem] font-bold text-foreground leading-tight">{issue.title}</h1>
-            <p className="text-muted-foreground leading-relaxed">{issue.description}</p>
+            <h1 className="font-fraunces text-[1.5rem] sm:text-[2rem] font-bold text-foreground leading-tight">{issue.title}</h1>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{issue.description}</p>
 
-            <div className="flex items-center gap-6 pt-2 border-t border-border">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 pt-2 border-t border-border">
               <div className="flex items-center gap-2 text-sm">
                 <div className="w-8 h-8 rounded-full bg-accent/15 flex items-center justify-center text-sm font-bold text-accent">
                   {issue.author.initial}
                 </div>
-                <div>
+                <div className="truncate">
                   <span className="font-medium text-foreground">{issue.author.name}</span>
                   <span className="text-muted-foreground"> · {issue.author.profession}</span>
                 </div>
-                <span className="text-[0.6rem] font-black tracking-wider bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
+                <span className="text-[0.6rem] font-black tracking-wider bg-accent text-accent-foreground px-2 py-0.5 rounded-full shrink-0">
                   {issue.author.tier}
                 </span>
               </div>
-              <div className="flex items-center gap-5 ml-auto text-xs text-muted-foreground">
+              <div className="flex items-center gap-4 sm:gap-5 sm:ml-auto text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5" />
                   <span className="font-medium text-foreground">{issue.participants}</span>
-                  <span>partisipan</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span className="font-medium text-foreground">{issue.stances}</span>
-                  <span>pernyataan</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Vote className="w-3.5 h-3.5" />
                   <span className="font-medium text-foreground">{issue.votes.toLocaleString()}</span>
-                  <span>vote</span>
                 </div>
               </div>
             </div>
@@ -805,7 +803,7 @@ export default function DeliberationPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-[1fr_300px] gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 lg:gap-8 items-start">
             <div>
               {activeTab === "pernyataan" && (
                 <div className="space-y-6">
@@ -945,7 +943,7 @@ export default function DeliberationPage({ params }: PageProps) {
               {activeTab === "berita" && <RelatedNewsTab query={issue.title} />}
             </div>
 
-            <aside className="space-y-5 sticky top-24">
+            <aside className="space-y-5 lg:sticky lg:top-24">
               <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
                 <p className="text-sm font-semibold text-foreground">Tahapan Isu</p>
                 <IssueTimeline currentStage={currentStage} timeline={issue.timeline} />

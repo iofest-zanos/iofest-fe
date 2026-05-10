@@ -238,6 +238,17 @@
   }
 }
 
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @layer utilities {
   .animate-fadeInUp {
     animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -247,6 +258,9 @@
   }
   .animate-slideInRight {
     animation: slideInRight 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-slideInUp {
+    animation: slideInUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   .font-fraunces {
     font-family: var(--font-fraunces), Georgia, serif;

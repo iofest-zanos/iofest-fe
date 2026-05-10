@@ -10,12 +10,10 @@ import {
   Search,
   MessageSquare,
   Clock,
-  Users,
   ThumbsUp,
   Trash2,
-  FolderOpen,
   ChevronRight,
-  Filter,
+  PanelRightOpen,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 
@@ -119,93 +117,54 @@ function BookmarkCard({
   thread: BookmarkedThread;
   onRemove: (id: number) => void;
 }) {
-  const tier = TIER_CONFIG[thread.author.tier];
-
   return (
-    <div className="group bg-card border border-border rounded-2xl p-6 hover:border-primary/25 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/[0.04] transition-all duration-200">
-      {/* Top row */}
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1 text-[0.6rem] font-black tracking-wider uppercase bg-accent text-accent-foreground px-2.5 py-1 rounded-full">
-            {CATEGORY_LABELS[thread.category as ForumCategory] ?? thread.category}
-          </span>
-          {thread.status === "SOLVED" && (
-            <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold text-status-enacted bg-status-enacted/10 px-2 py-0.5 rounded-full">
-              <Bookmark className="w-3 h-3" />
-              Terjawab
+    <div className="group relative bg-card border border-border rounded-xl px-4 py-3.5 hover:border-primary/25 transition-all duration-200">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          {/* Badges row */}
+          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+            <span className="text-[0.55rem] font-bold tracking-wide px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
+              {CATEGORY_LABELS[thread.category as ForumCategory] ?? thread.category}
             </span>
-          )}
+            {thread.status === "SOLVED" && (
+              <span className="text-[0.5rem] font-bold text-status-enacted bg-status-enacted/10 px-1.5 py-0.5 rounded-full">
+                Terjawab
+              </span>
+            )}
+          </div>
+
+          {/* Title */}
+          <Link href={`/forum/${thread.slug}`}>
+            <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-2 mb-1 group-hover:text-primary transition-colors">
+              {thread.title}
+            </h3>
+          </Link>
+          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1 mb-1">{thread.excerpt}</p>
+
+          {/* Compact stats row */}
+          <div className="flex items-center gap-3 text-[0.6rem] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <MessageSquare className="w-3 h-3" />
+              {thread.replies}
+            </span>
+            <span className="flex items-center gap-1">
+              <ThumbsUp className="w-3 h-3" />
+              {thread.upvotes}
+            </span>
+            <span className="flex items-center gap-1">
+              <Bookmark className="w-3 h-3" />
+              {thread.bookmarkedAt ?? thread.timeAgo}
+            </span>
+          </div>
         </div>
         <button
-          onClick={() => onRemove(thread.id)}
-          className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-status-rejected hover:bg-status-rejected/10 rounded-lg transition-all"
+          onClick={(e) => { e.preventDefault(); onRemove(thread.id); }}
+          className="p-1.5 text-muted-foreground/40 hover:text-status-rejected transition-colors shrink-0 mt-0.5"
           title="Hapus bookmark"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
-
-      {/* Title */}
-      <Link href={`/forum/${thread.slug}`}>
-        <h3 className="font-fraunces text-[1.1rem] font-bold text-foreground leading-snug mb-2.5 group-hover:text-primary transition-colors cursor-pointer">
-          {thread.title}
-        </h3>
-      </Link>
-
-      {/* Excerpt */}
-      <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-2">
-        {thread.excerpt}
-      </p>
-
-      {/* Author row */}
-      <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground pb-4 border-b border-border">
-        <div className="w-6 h-6 rounded-full bg-accent/15 flex items-center justify-center text-[0.65rem] font-bold text-accent">
-          {thread.author.initial}
-        </div>
-        <span className="font-medium text-foreground">{thread.author.name}</span>
-        <span>·</span>
-        <span>{thread.author.profession}</span>
-        <span className={`ml-1 text-[0.55rem] font-black tracking-wider px-1.5 py-0.5 rounded-full ${tier.cls}`}>
-          {thread.author.tier}
-        </span>
-      </div>
-
-      {/* Tags */}
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {thread.tags.map((tag) => (
-          <span key={tag} className="text-[0.65rem] text-accent/70 bg-accent/8 px-2 py-0.5 rounded-full font-medium">
-            #{tag}
-          </span>
-        ))}
-      </div>
-
-      {/* Stats row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-5">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span className="font-medium text-foreground">{thread.replies}</span>
-            <span>balasan</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Users className="w-3.5 h-3.5" />
-            <span className="font-medium text-foreground">{thread.views.toLocaleString()}</span>
-            <span>dilihat</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <ThumbsUp className="w-3.5 h-3.5" />
-            <span className="font-medium text-foreground">{thread.upvotes}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 text-[0.65rem] text-muted-foreground">
-            <Bookmark className="w-3 h-3" />
-            <span>Disimpan {thread.bookmarkedAt ?? thread.timeAgo}</span>
-          </div>
-        </div>
-      </div>
-
     </div>
   );
 }
@@ -216,6 +175,7 @@ export default function BookmarksPage() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<ForumCategory | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (authLoading) return;
@@ -241,6 +201,58 @@ export default function BookmarksPage() {
     }
   };
 
+  const sidebarContent = (
+    <>
+      <div>
+        <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">Filter Kategori</p>
+        <div className="space-y-0.5">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setSelectedCategory(c.key)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                c.key === selectedCategory
+                  ? "bg-accent/10 text-accent font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <span>{c.label}</span>
+              {c.key !== "ALL" && (
+                <span className="text-[0.65rem] text-muted-foreground/60">{bookmarks.filter((b) => b.category === c.key).length}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+        <p className="text-sm font-semibold text-foreground">Statistik Bookmark</p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Total Bookmark</span>
+            <span className="font-medium text-foreground">{bookmarks.length}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Belum Dibaca</span>
+            <span className="font-medium text-status-hot">{Math.ceil(bookmarks.length * 0.3)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Terjawab</span>
+            <span className="font-medium text-status-enacted">{bookmarks.filter((b) => b.status === "SOLVED").length}</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">Menu Cepat</p>
+        <div className="space-y-0.5">
+          <Link href="/forum" className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors">
+            <MessageSquare className="w-4 h-4" />
+            Lihat Forum
+          </Link>
+        </div>
+      </div>
+    </>
+  );
+
   const filteredBookmarks = bookmarks.filter((thread) => {
     const matchesCategory = selectedCategory === "ALL" || thread.category === selectedCategory;
     const matchesSearch =
@@ -256,163 +268,91 @@ export default function BookmarksPage() {
       <Navbar />
 
       <div className="pt-16">
-        {/* Header */}
+        {/* ── Compact header ── */}
         <div className="border-b border-border bg-muted/20">
-          <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 space-y-3">
             <Link
               href="/forum"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Kembali ke Forum
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Forum
             </Link>
-
-            <div className="flex items-end justify-between gap-8">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Bookmark className="w-5 h-5 text-accent" />
-                  <span className="text-[0.7rem] font-bold tracking-[0.15em] uppercase text-accent">
-                    Tersimpan
-                  </span>
-                </div>
-                <h1 className="font-fraunces text-[2.5rem] font-bold text-foreground leading-tight">
-                  Bookmark Diskusi
-                </h1>
-                <p className="text-muted-foreground text-sm">
-                  {bookmarks.length} diskusi tersimpan
-                </p>
+            <div className="flex items-center justify-between gap-3">
+              <h1 className="font-fraunces text-lg sm:text-[1.75rem] font-bold text-foreground leading-tight">
+                Bookmark Diskusi
+              </h1>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                  title={sidebarOpen ? "Sembunyikan filter" : "Tampilkan filter"}
+                >
+                  <PanelRightOpen className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarOpen ? "rotate-180" : ""}`} />
+                  <span className="hidden sm:inline">Filter</span>
+                </button>
+                <span className="text-xs text-muted-foreground shrink-0">{bookmarks.length}</span>
               </div>
-
-              {/* Search */}
-              <div className="relative w-80">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari bookmark..."
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60"
-                />
-              </div>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari bookmark..."
+                className="w-full pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground/60"
+              />
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
-          {/* Sidebar */}
-          <aside className="w-64 shrink-0 space-y-6">
-            {/* Category filter */}
-            <div>
-              <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">
-                Filter Kategori
-              </p>
-              <div className="space-y-0.5">
-                {CATEGORIES.map((c) => (
-                  <button
-                    key={c.key}
-                    onClick={() => setSelectedCategory(c.key)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
-                      c.key === selectedCategory
-                        ? "bg-accent/10 text-accent font-medium"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                    }`}
-                  >
-                    <span>{c.label}</span>
-                    {c.key !== "ALL" && (
-                      <span className="text-[0.65rem] text-muted-foreground/60">
-                        {bookmarks.filter((b) => b.category === c.key).length}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* ── Content ── */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col lg:flex-row gap-6 lg:gap-8">
+          {/* Mobile drawer backdrop */}
+          {sidebarOpen && (
+            <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
+          )}
 
-            {/* Stats */}
-            <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
-              <p className="text-sm font-semibold text-foreground">Statistik Bookmark</p>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Total Bookmark</span>
-                  <span className="font-medium text-foreground">{bookmarks.length}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Belum Dibaca</span>
-                  <span className="font-medium text-status-hot">{Math.ceil(bookmarks.length * 0.3)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Terjawab</span>
-                  <span className="font-medium text-status-enacted">
-                    {bookmarks.filter((b) => b.status === "SOLVED").length}
-                  </span>
-                </div>
-              </div>
-            </div>
+          {/* Mobile sidebar drawer */}
+          <aside className={`fixed left-0 top-16 bottom-0 z-50 w-64 bg-card border-r border-border overflow-y-auto p-4 sm:p-6 space-y-6 transition-transform duration-300 lg:hidden ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}>
+            {sidebarContent}
+          </aside>
 
-            {/* Quick Links */}
-            <div>
-              <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">
-                Menu Cepat
-              </p>
-              <div className="space-y-0.5">
-                <Link
-                  href="/forum"
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Lihat Forum
-                </Link>
-                <Link
-                  href="/forum/new"
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                >
-                  <FolderOpen className="w-4 h-4" />
-                  Thread Baru
-                </Link>
-              </div>
-            </div>
+          {/* Desktop sidebar — collapsible inline */}
+          <aside className={`hidden lg:block overflow-hidden transition-all duration-300 shrink-0 ${sidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0"}`}>
+            {sidebarContent}
           </aside>
 
           {/* Main content */}
           <main className="flex-1 min-w-0">
             {!user && !authLoading ? (
-              <div className="text-center py-16 bg-card border border-border rounded-2xl">
-                <p className="text-muted-foreground mb-4">Masuk untuk melihat bookmark Anda.</p>
-                <Link href="/auth/login" className="text-primary hover:underline text-sm">
-                  Masuk
-                </Link>
+              <div className="text-center py-12 bg-card border border-border rounded-xl">
+                <p className="text-muted-foreground mb-3 text-sm">Masuk untuk melihat bookmark Anda.</p>
+                <Link href="/auth/login" className="text-primary hover:underline text-sm">Masuk</Link>
               </div>
             ) : loading ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {[0, 1].map((i) => (
-                  <div key={i} className="h-44 bg-card border border-border rounded-2xl animate-pulse" />
+                  <div key={i} className="h-24 bg-card border border-border rounded-xl animate-pulse" />
                 ))}
               </div>
             ) : filteredBookmarks.length > 0 ? (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {filteredBookmarks.map((thread) => (
-                  <BookmarkCard
-                    key={thread.id}
-                    thread={thread}
-                    onRemove={handleRemoveBookmark}
-                  />
+                  <BookmarkCard key={thread.id} thread={thread} onRemove={handleRemoveBookmark} />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-16 bg-card border border-border rounded-2xl">
-                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Bookmark className="w-10 h-10 text-muted-foreground" />
+              <div className="text-center py-12 bg-card border border-border rounded-xl">
+                <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Bookmark className="w-7 h-7 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  Belum ada bookmark
-                </h3>
-                <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-                  Simpan diskusi yang menarik untuk dibaca nanti. Klik ikon bookmark di thread forum untuk menyimpan.
-                </p>
-                <Link
-                  href="/forum"
-                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all"
-                >
+                <h3 className="text-sm font-semibold text-foreground mb-1">Belum ada bookmark</h3>
+                <p className="text-xs text-muted-foreground mb-4 max-w-xs mx-auto">Simpan diskusi menarik untuk dibaca nanti.</p>
+                <Link href="/forum" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-semibold text-xs hover:bg-primary/90 transition-all">
                   Jelajahi Forum
                   <ChevronRight className="w-4 h-4" />
                 </Link>

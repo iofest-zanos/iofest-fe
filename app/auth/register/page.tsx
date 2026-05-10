@@ -161,8 +161,8 @@ export default function RegisterPage() {
       </div>
 
       {/* Right form */}
-      <div className="flex-1 flex flex-col justify-center items-center px-8 py-12">
-        <div className="w-full max-w-sm space-y-7">
+      <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-8 py-8 sm:py-12">
+        <div className="w-full max-w-sm space-y-6 sm:space-y-7">
           {/* Logo mobile */}
           <div className="lg:hidden">
             <Link href="/">

@@ -111,7 +111,7 @@ export default function HomePage() {
           }}
         />
 
-        <div className="relative max-w-7xl mx-auto px-6 py-24 grid grid-cols-[1fr_1fr] gap-20 items-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-10 lg:gap-20 items-center">
           {/* Left */}
           <div className="space-y-8">
             <div
@@ -127,7 +127,7 @@ export default function HomePage() {
             </div>
 
             <h1
-              className="font-fraunces text-[4.5rem] leading-[1.04] font-bold text-foreground animate-fadeInUp"
+              className="font-fraunces text-[2.5rem] sm:text-[3.5rem] lg:text-[4.5rem] leading-[1.04] font-bold text-foreground animate-fadeInUp"
               style={{ animationDelay: "80ms" }}
             >
               Suaramu,
@@ -143,7 +143,7 @@ export default function HomePage() {
             </h1>
 
             <p
-              className="text-[1.1rem] text-muted-foreground leading-relaxed max-w-[420px] animate-fadeInUp"
+              className="text-[0.95rem] sm:text-[1.1rem] text-muted-foreground leading-relaxed max-w-[420px] animate-fadeInUp"
               style={{ animationDelay: "160ms" }}
             >
               Bukan forum, bukan petisi. SuaraKita mengubah diskusi publik yang
@@ -152,12 +152,12 @@ export default function HomePage() {
             </p>
 
             <div
-              className="flex items-center gap-4 animate-fadeInUp"
+              className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 animate-fadeInUp"
               style={{ animationDelay: "240ms" }}
             >
               <Link
                 href="/issues"
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/25 text-sm"
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/25 text-sm w-full sm:w-auto justify-center"
               >
                 Jelajahi Isu
                 <ArrowRight className="w-4 h-4" />
@@ -172,7 +172,7 @@ export default function HomePage() {
             </div>
 
             <div
-              className="flex items-center gap-6 pt-2 animate-fadeInUp"
+              className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2 animate-fadeInUp"
               style={{ animationDelay: "320ms" }}
             >
               {["Deliberasi Terstruktur", "Opinion Clustering AI", "Brief Kebijakan Otomatis"].map(
@@ -191,7 +191,7 @@ export default function HomePage() {
 
           {/* Right — product preview cards */}
           <div
-            className="relative animate-slideInRight"
+            className="relative animate-slideInRight hidden lg:block"
             style={{ animationDelay: "300ms" }}
           >
             {/* Main stance voting card */}
@@ -299,15 +299,15 @@ export default function HomePage() {
       </section>
 
       {/* ── Stats strip ── */}
-      <section className="border-y border-border bg-muted/20 py-10">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-4 divide-x divide-border">
+      <section className="border-y border-border bg-muted/20 py-8 sm:py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-0 sm:divide-x sm:divide-border">
             {stats.map((s) => (
-              <div key={s.label} className="text-center px-8 first:pl-0 last:pr-0">
-                <p className="font-fraunces text-[2.25rem] font-bold text-foreground leading-none">
+              <div key={s.label} className="text-center sm:px-8 first:sm:pl-0 last:sm:pr-0">
+                <p className="font-fraunces text-[1.75rem] sm:text-[2.25rem] font-bold text-foreground leading-none">
                   {s.value}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1.5">{s.label}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">{s.label}</p>
               </div>
             ))}
           </div>
@@ -315,23 +315,23 @@ export default function HomePage() {
       </section>
 
       {/* ── How it works ── */}
-      <section id="cara-kerja" className="py-28 max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16 space-y-4">
+      <section id="cara-kerja" className="py-16 sm:py-28 max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-12 sm:mb-16 space-y-4">
           <p className="text-[0.7rem] font-bold tracking-[0.15em] uppercase text-primary">
             Cara Kerja
           </p>
-          <h2 className="font-fraunces text-[3rem] font-bold text-foreground leading-tight">
+          <h2 className="font-fraunces text-[2rem] sm:text-[3rem] font-bold text-foreground leading-tight">
             Dari diskusi ke kebijakan,
             <br />
             <span className="text-muted-foreground font-normal">dalam tiga langkah.</span>
           </h2>
         </div>
 
-        <div className="relative grid grid-cols-3 gap-10">
+        <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
           {/* Connector */}
           <div className="absolute top-[3.5rem] left-[calc(16.67%+3rem)] right-[calc(16.67%+3rem)] h-px bg-border hidden lg:block" />
           {steps.map((step) => (
-            <div key={step.step} className="space-y-5">
+            <div key={step.step} className="space-y-4 md:space-y-5">
               <div
                 className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
                   step.accent === "primary"
@@ -359,27 +359,27 @@ export default function HomePage() {
       </section>
 
       {/* ── Features ── */}
-      <section className="py-28 bg-muted/20 border-y border-border">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16 space-y-4">
+      <section className="py-16 sm:py-28 bg-muted/20 border-y border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16 space-y-4">
             <p className="text-[0.7rem] font-bold tracking-[0.15em] uppercase text-primary">
               Fitur Unggulan
             </p>
-            <h2 className="font-fraunces text-[3rem] font-bold text-foreground leading-tight">
+            <h2 className="font-fraunces text-[2rem] sm:text-[3rem] font-bold text-foreground leading-tight">
               Teknologi untuk deliberasi,
               <br />
               <span className="text-muted-foreground font-normal">bukan untuk polarisasi.</span>
             </h2>
           </div>
 
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
             {features.map((f) => (
               <div
                 key={f.title}
-                className="bg-card border border-border rounded-2xl p-8 group hover:border-primary/25 hover:-translate-y-1 hover:shadow-xl hover:shadow-foreground/[0.04] transition-all duration-300"
+                className="bg-card border border-border rounded-2xl p-6 sm:p-8 group hover:border-primary/25 hover:-translate-y-1 hover:shadow-xl hover:shadow-foreground/[0.04] transition-all duration-300"
               >
                 <div
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center mb-6 ${
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 sm:mb-6 ${
                     f.accent === "primary" ? "bg-primary/10" : "bg-accent/10"
                   }`}
                 >
@@ -387,7 +387,7 @@ export default function HomePage() {
                     className={`w-5 h-5 ${f.accent === "primary" ? "text-primary" : "text-accent"}`}
                   />
                 </div>
-                <h3 className="text-[1.05rem] font-semibold text-foreground mb-2.5">
+                <h3 className="text-[1rem] sm:text-[1.05rem] font-semibold text-foreground mb-2">
                   {f.title}
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
@@ -398,17 +398,17 @@ export default function HomePage() {
       </section>
 
       {/* ── Testimonials ── */}
-      <section className="py-28 max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16 space-y-4">
+      <section className="py-16 sm:py-28 max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-12 sm:mb-16 space-y-4">
           <p className="text-[0.7rem] font-bold tracking-[0.15em] uppercase text-primary">
             Pengguna
           </p>
-          <h2 className="font-fraunces text-[3rem] font-bold text-foreground">
+          <h2 className="font-fraunces text-[2rem] sm:text-[3rem] font-bold text-foreground">
             Untuk mereka yang peduli kebijakan.
           </h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {testimonials.map((t) => (
             <div
               key={t.name}
@@ -441,22 +441,22 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="py-28 border-t border-border relative overflow-hidden">
+      <section className="py-16 sm:py-28 border-t border-border relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] to-accent/[0.04] pointer-events-none" />
-        <div className="relative max-w-4xl mx-auto px-6 text-center space-y-8">
-          <h2 className="font-fraunces text-[3.5rem] font-bold text-foreground leading-tight">
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-6 sm:space-y-8">
+          <h2 className="font-fraunces text-[2.5rem] sm:text-[3.5rem] font-bold text-foreground leading-tight">
             Suaramu, untuk Indonesia.
             <br />
             <span className="text-primary">Sekarang.</span>
           </h2>
-          <p className="text-[1.05rem] text-muted-foreground max-w-lg mx-auto leading-relaxed">
+          <p className="text-[0.95rem] sm:text-[1.05rem] text-muted-foreground max-w-lg mx-auto leading-relaxed">
             Bergabung dengan akademisi, jurnalis, aktivis, dan warga yang
             membentuk kebijakan publik Indonesia secara terstruktur.
           </p>
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link
               href="/auth/register"
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-3.5 rounded-xl font-semibold hover:bg-primary/90 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/25"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-3.5 rounded-xl font-semibold hover:bg-primary/90 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/25 w-full sm:w-auto justify-center"
             >
               Mulai Sekarang
               <ArrowRight className="w-4 h-4" />
@@ -472,12 +472,12 @@ export default function HomePage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-border py-10">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+      <footer className="border-t border-border py-8 sm:py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-0 sm:justify-between text-center sm:text-left">
           <span className="font-fraunces text-lg font-bold text-foreground">
             Suara<span className="text-primary">Kita</span>
           </span>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground order-last sm:order-none mt-2 sm:mt-0">
             Platform Deliberasi Sipil Indonesia &middot; IOFEST 2026 &middot;{" "}
             <span className="text-primary/70">Good Governance &amp; Civic Tech</span>
           </p>
