@@ -343,7 +343,11 @@ export default function ForumPage() {
   const [selectedSort, setSelectedSort] = useState("trending");
   const [sheetSort, setSheetSort] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (window.innerWidth >= 1024) setSidebarOpen(true);
+  }, []);
 
   useEffect(() => {
     forum

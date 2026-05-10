@@ -18,7 +18,13 @@ import {
 import { Navbar } from "@/components/layout/navbar";
 
 type ThreadStatus = "OPEN" | "SOLVED" | "CLOSED";
-type ForumCategory = "GENERAL" | "POLICY_DISCUSSION" | "EXPERT_QA" | "CIVIC_TECH" | "LEGAL_HELP" | "NEWS_DISCUSS";
+type ForumCategory =
+  | "GENERAL"
+  | "POLICY_DISCUSSION"
+  | "EXPERT_QA"
+  | "CIVIC_TECH"
+  | "LEGAL_HELP"
+  | "NEWS_DISCUSS";
 
 type BookmarkedThread = ThreadListItem & { bookmarkedAt?: string };
 
@@ -42,10 +48,16 @@ const _MOCK_BOOKMARKS_LEGACY: unknown[] = [
     id: 1,
     slug: "diskusi-ruu-perlindungan-data-pribadi",
     title: "Diskusi: Revisi RUU Perlindungan Data Pribadi yang sedang berjalan",
-    excerpt: "DPR sedang bahas revisi RUU PDP. Menurut teman-teman, apa yang perlu diperhatikan dari draf terbaru? Ada beberapa pasal yang mengkhawatirkan tentang kewenangan pengawasan.",
+    excerpt:
+      "DPR sedang bahas revisi RUU PDP. Menurut teman-teman, apa yang perlu diperhatikan dari draf terbaru? Ada beberapa pasal yang mengkhawatirkan tentang kewenangan pengawasan.",
     status: "OPEN",
     category: "POLICY_DISCUSSION",
-    author: { name: "Budi Prakoso", tier: "PAKAR", profession: "Peneliti Kebijakan Digital", initial: "B" },
+    author: {
+      name: "Budi Prakoso",
+      tier: "PAKAR",
+      profession: "Peneliti Kebijakan Digital",
+      initial: "B",
+    },
     replies: 67,
     views: 4520,
     upvotes: 234,
@@ -57,10 +69,16 @@ const _MOCK_BOOKMARKS_LEGACY: unknown[] = [
     id: 3,
     slug: "tanya-pemberlakuan-uu-kekerasan-seksual",
     title: "Tanya: Implementasi UU TPKS di institusi pendidikan",
-    excerpt: "Sebagai dosen, saya ingin memastikan kampus kami memenuhi standar UU TPKS. Apa saja komponen wajib yang harus ada dalam kebijakan internal?",
+    excerpt:
+      "Sebagai dosen, saya ingin memastikan kampus kami memenuhi standar UU TPKS. Apa saja komponen wajib yang harus ada dalam kebijakan internal?",
     status: "SOLVED",
     category: "EXPERT_QA",
-    author: { name: "Dra. Maya Lestari", tier: "WARGA", profession: "Dosen Universitas", initial: "M" },
+    author: {
+      name: "Dra. Maya Lestari",
+      tier: "WARGA",
+      profession: "Dosen Universitas",
+      initial: "M",
+    },
     replies: 12,
     views: 580,
     upvotes: 45,
@@ -72,10 +90,16 @@ const _MOCK_BOOKMARKS_LEGACY: unknown[] = [
     id: 4,
     slug: "pengalaman-pakai-ai-untuk-analisis-kebijakan",
     title: "Pengalaman menggunakan AI untuk analisis kebijakan publik",
-    excerpt: "Saya sudah bereksperimen dengan GPT-4 dan Claude untuk membantu merangkum dokumen kebijakan. Berbagi tips dan best practices untuk civic tech enthusiasts.",
+    excerpt:
+      "Saya sudah bereksperimen dengan GPT-4 dan Claude untuk membantu merangkum dokumen kebijakan. Berbagi tips dan best practices untuk civic tech enthusiasts.",
     status: "OPEN",
     category: "CIVIC_TECH",
-    author: { name: "Joko Santoso", tier: "PAKAR", profession: "Data Scientist", initial: "J" },
+    author: {
+      name: "Joko Santoso",
+      tier: "PAKAR",
+      profession: "Data Scientist",
+      initial: "J",
+    },
     replies: 34,
     views: 1890,
     upvotes: 156,
@@ -87,10 +111,16 @@ const _MOCK_BOOKMARKS_LEGACY: unknown[] = [
     id: 6,
     slug: "analisis-putusan-mk-terkini",
     title: "Analisis: Putusan MK terkini tentang presidential threshold",
-    excerpt: "MK baru saja keluarkan putusan yang mengubah ambang batas presidential threshold. Mari kita bahas implikasi hukum dan politiknya secara mendalam.",
+    excerpt:
+      "MK baru saja keluarkan putusan yang mengubah ambang batas presidential threshold. Mari kita bahas implikasi hukum dan politiknya secara mendalam.",
     status: "OPEN",
     category: "NEWS_DISCUSS",
-    author: { name: "Dr. Ahmad Rizal", tier: "PAKAR", profession: "Ahli Hukum Tata Negara", initial: "A" },
+    author: {
+      name: "Dr. Ahmad Rizal",
+      tier: "PAKAR",
+      profession: "Ahli Hukum Tata Negara",
+      initial: "A",
+    },
     replies: 89,
     views: 6780,
     upvotes: 312,
@@ -124,7 +154,8 @@ function BookmarkCard({
           {/* Badges row */}
           <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
             <span className="text-[0.55rem] font-bold tracking-wide px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
-              {CATEGORY_LABELS[thread.category as ForumCategory] ?? thread.category}
+              {CATEGORY_LABELS[thread.category as ForumCategory] ??
+                thread.category}
             </span>
             {thread.status === "SOLVED" && (
               <span className="text-[0.5rem] font-bold text-status-enacted bg-status-enacted/10 px-1.5 py-0.5 rounded-full">
@@ -139,7 +170,9 @@ function BookmarkCard({
               {thread.title}
             </h3>
           </Link>
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1 mb-1">{thread.excerpt}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1 mb-1">
+            {thread.excerpt}
+          </p>
 
           {/* Compact stats row */}
           <div className="flex items-center gap-3 text-[0.6rem] text-muted-foreground">
@@ -158,7 +191,10 @@ function BookmarkCard({
           </div>
         </div>
         <button
-          onClick={(e) => { e.preventDefault(); onRemove(thread.id); }}
+          onClick={(e) => {
+            e.preventDefault();
+            onRemove(thread.id);
+          }}
           className="p-1.5 text-muted-foreground/40 hover:text-status-rejected transition-colors shrink-0 mt-0.5"
           title="Hapus bookmark"
         >
@@ -173,9 +209,15 @@ export default function BookmarksPage() {
   const { user, loading: authLoading } = useAuth();
   const [bookmarks, setBookmarks] = useState<BookmarkedThread[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<ForumCategory | "ALL">("ALL");
+  const [selectedCategory, setSelectedCategory] = useState<
+    ForumCategory | "ALL"
+  >("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (window.innerWidth >= 1024) setSidebarOpen(true);
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -204,7 +246,9 @@ export default function BookmarksPage() {
   const sidebarContent = (
     <>
       <div>
-        <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">Filter Kategori</p>
+        <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">
+          Filter Kategori
+        </p>
         <div className="space-y-0.5">
           {CATEGORIES.map((c) => (
             <button
@@ -218,33 +262,48 @@ export default function BookmarksPage() {
             >
               <span>{c.label}</span>
               {c.key !== "ALL" && (
-                <span className="text-[0.65rem] text-muted-foreground/60">{bookmarks.filter((b) => b.category === c.key).length}</span>
+                <span className="text-[0.65rem] text-muted-foreground/60">
+                  {bookmarks.filter((b) => b.category === c.key).length}
+                </span>
               )}
             </button>
           ))}
         </div>
       </div>
       <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
-        <p className="text-sm font-semibold text-foreground">Statistik Bookmark</p>
+        <p className="text-sm font-semibold text-foreground">
+          Statistik Bookmark
+        </p>
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Total Bookmark</span>
-            <span className="font-medium text-foreground">{bookmarks.length}</span>
+            <span className="font-medium text-foreground">
+              {bookmarks.length}
+            </span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Belum Dibaca</span>
-            <span className="font-medium text-status-hot">{Math.ceil(bookmarks.length * 0.3)}</span>
+            <span className="font-medium text-status-hot">
+              {Math.ceil(bookmarks.length * 0.3)}
+            </span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Terjawab</span>
-            <span className="font-medium text-status-enacted">{bookmarks.filter((b) => b.status === "SOLVED").length}</span>
+            <span className="font-medium text-status-enacted">
+              {bookmarks.filter((b) => b.status === "SOLVED").length}
+            </span>
           </div>
         </div>
       </div>
       <div>
-        <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3">Menu Cepat</p>
+        <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3 my-2">
+          Menu Cepat
+        </p>
         <div className="space-y-0.5">
-          <Link href="/forum" className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors">
+          <Link
+            href="/forum"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+          >
             <MessageSquare className="w-4 h-4" />
             Lihat Forum
           </Link>
@@ -254,12 +313,15 @@ export default function BookmarksPage() {
   );
 
   const filteredBookmarks = bookmarks.filter((thread) => {
-    const matchesCategory = selectedCategory === "ALL" || thread.category === selectedCategory;
+    const matchesCategory =
+      selectedCategory === "ALL" || thread.category === selectedCategory;
     const matchesSearch =
       searchQuery === "" ||
       thread.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       thread.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      thread.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      thread.tags.some((tag) =>
+        tag.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
     return matchesCategory && matchesSearch;
   });
 
@@ -286,12 +348,18 @@ export default function BookmarksPage() {
                 <button
                   onClick={() => setSidebarOpen(!sidebarOpen)}
                   className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-                  title={sidebarOpen ? "Sembunyikan filter" : "Tampilkan filter"}
+                  title={
+                    sidebarOpen ? "Sembunyikan filter" : "Tampilkan filter"
+                  }
                 >
-                  <PanelRightOpen className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarOpen ? "rotate-180" : ""}`} />
+                  <PanelRightOpen
+                    className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarOpen ? "rotate-180" : ""}`}
+                  />
                   <span className="hidden sm:inline">Filter</span>
                 </button>
-                <span className="text-xs text-muted-foreground shrink-0">{bookmarks.length}</span>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {bookmarks.length}
+                </span>
               </div>
             </div>
             <div className="relative">
@@ -311,18 +379,25 @@ export default function BookmarksPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Mobile drawer backdrop */}
           {sidebarOpen && (
-            <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
+            <div
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
           )}
 
           {/* Mobile sidebar drawer */}
-          <aside className={`fixed left-0 top-16 bottom-0 z-50 w-64 bg-card border-r border-border overflow-y-auto p-4 sm:p-6 space-y-6 transition-transform duration-300 lg:hidden ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}>
+          <aside
+            className={`fixed left-0 top-16 bottom-0 z-50 w-64 bg-card border-r border-border overflow-y-auto p-4 sm:p-6 space-y-6 transition-transform duration-300 lg:hidden ${
+              sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
             {sidebarContent}
           </aside>
 
           {/* Desktop sidebar — collapsible inline */}
-          <aside className={`hidden lg:block overflow-hidden transition-all duration-300 shrink-0 ${sidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0"}`}>
+          <aside
+            className={`hidden lg:block overflow-hidden transition-all duration-300 shrink-0 ${sidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0"}`}
+          >
             {sidebarContent}
           </aside>
 
@@ -330,19 +405,33 @@ export default function BookmarksPage() {
           <main className="flex-1 min-w-0">
             {!user && !authLoading ? (
               <div className="text-center py-12 bg-card border border-border rounded-xl">
-                <p className="text-muted-foreground mb-3 text-sm">Masuk untuk melihat bookmark Anda.</p>
-                <Link href="/auth/login" className="text-primary hover:underline text-sm">Masuk</Link>
+                <p className="text-muted-foreground mb-3 text-sm">
+                  Masuk untuk melihat bookmark Anda.
+                </p>
+                <Link
+                  href="/auth/login"
+                  className="text-primary hover:underline text-sm"
+                >
+                  Masuk
+                </Link>
               </div>
             ) : loading ? (
               <div className="space-y-3">
                 {[0, 1].map((i) => (
-                  <div key={i} className="h-24 bg-card border border-border rounded-xl animate-pulse" />
+                  <div
+                    key={i}
+                    className="h-24 bg-card border border-border rounded-xl animate-pulse"
+                  />
                 ))}
               </div>
             ) : filteredBookmarks.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {filteredBookmarks.map((thread) => (
-                  <BookmarkCard key={thread.id} thread={thread} onRemove={handleRemoveBookmark} />
+                  <BookmarkCard
+                    key={thread.id}
+                    thread={thread}
+                    onRemove={handleRemoveBookmark}
+                  />
                 ))}
               </div>
             ) : (
@@ -350,9 +439,16 @@ export default function BookmarksPage() {
                 <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                   <Bookmark className="w-7 h-7 text-muted-foreground" />
                 </div>
-                <h3 className="text-sm font-semibold text-foreground mb-1">Belum ada bookmark</h3>
-                <p className="text-xs text-muted-foreground mb-4 max-w-xs mx-auto">Simpan diskusi menarik untuk dibaca nanti.</p>
-                <Link href="/forum" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-semibold text-xs hover:bg-primary/90 transition-all">
+                <h3 className="text-sm font-semibold text-foreground mb-1">
+                  Belum ada bookmark
+                </h3>
+                <p className="text-xs text-muted-foreground mb-4 max-w-xs mx-auto">
+                  Simpan diskusi menarik untuk dibaca nanti.
+                </p>
+                <Link
+                  href="/forum"
+                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-semibold text-xs hover:bg-primary/90 transition-all"
+                >
                   Jelajahi Forum
                   <ChevronRight className="w-4 h-4" />
                 </Link>

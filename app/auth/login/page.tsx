@@ -53,17 +53,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex -space-x-2">
-            {["S", "J", "L", "B"].map((initial, i) => (
-              <div
-                key={i}
-                className="w-8 h-8 rounded-full bg-white/20 border-2 border-primary flex items-center justify-center text-white text-xs font-bold"
-              >
-                {initial}
-              </div>
-            ))}
-          </div>
+        <div className="relative z-10">
           <p className="text-white/60 text-xs">
             <span className="text-white font-medium">12.800+</span> partisipan aktif
           </p>

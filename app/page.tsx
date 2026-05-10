@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { ArrowRight, ChevronRight, Users, FileText, Scale, Sparkles, TrendingUp, Shield, CheckCircle2 } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronRight,
+  Users,
+  FileText,
+  Scale,
+  Sparkles,
+  TrendingUp,
+  Shield,
+  CheckCircle2,
+} from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 
 const stats = [
@@ -175,17 +185,19 @@ export default function HomePage() {
               className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2 animate-fadeInUp"
               style={{ animationDelay: "320ms" }}
             >
-              {["Deliberasi Terstruktur", "Opinion Clustering AI", "Brief Kebijakan Otomatis"].map(
-                (tag) => (
-                  <div
-                    key={tag}
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-accent" />
-                    {tag}
-                  </div>
-                )
-              )}
+              {[
+                "Deliberasi Terstruktur",
+                "Opinion Clustering AI",
+                "Brief Kebijakan Otomatis",
+              ].map((tag) => (
+                <div
+                  key={tag}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-accent" />
+                  {tag}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -215,8 +227,8 @@ export default function HomePage() {
                       BRIDGE · 78–92% setuju lintas kubu
                     </span>
                     <p className="text-[0.95rem] text-foreground font-medium leading-snug">
-                      "Data biometrik harus mendapat perlindungan tingkat tertinggi
-                      karena tidak dapat diganti seperti password."
+                      "Data biometrik harus mendapat perlindungan tingkat
+                      tertinggi karena tidak dapat diganti seperti password."
                     </p>
                   </div>
                   <span className="shrink-0 mt-0.5 bg-accent text-accent-foreground text-[0.6rem] font-black tracking-wider px-2 py-1 rounded-full">
@@ -227,7 +239,9 @@ export default function HomePage() {
                   <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-[0.7rem] font-bold text-accent">
                     S
                   </div>
-                  <span className="font-medium text-foreground text-xs">Dr. Sari Wijaya</span>
+                  <span className="font-medium text-foreground text-xs">
+                    Dr. Sari Wijaya
+                  </span>
                   <span>·</span>
                   <span>Akademisi Hukum</span>
                   <span>·</span>
@@ -252,44 +266,102 @@ export default function HomePage() {
               <div className="space-y-1.5">
                 <div className="flex justify-between text-[0.7rem] text-muted-foreground">
                   <span>Progress menilai</span>
-                  <span className="font-medium text-foreground">12 / 47 pernyataan</span>
+                  <span className="font-medium text-foreground">
+                    12 / 47 pernyataan
+                  </span>
                 </div>
                 <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-accent rounded-full" style={{ width: "25.5%" }} />
+                  <div
+                    className="h-full bg-accent rounded-full"
+                    style={{ width: "25.5%" }}
+                  />
                 </div>
               </div>
             </div>
 
             {/* Floating mini opinion map */}
-            <div className="absolute -bottom-10 -right-10 bg-card border border-border rounded-2xl p-4 shadow-xl shadow-foreground/[0.06] w-60 animate-fadeIn" style={{ animationDelay: "700ms" }}>
+            <div
+              className="absolute -bottom-10 -right-10 bg-card border border-border rounded-2xl p-4 shadow-xl shadow-foreground/[0.06] w-60 animate-fadeIn"
+              style={{ animationDelay: "700ms" }}
+            >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[0.7rem] font-semibold text-foreground">Peta Opini</span>
-                <span className="text-[0.65rem] text-muted-foreground">156 partisipan · 3 kubu</span>
+                <span className="text-[0.7rem] font-semibold text-foreground">
+                  Peta Opini
+                </span>
+                <span className="text-[0.65rem] text-muted-foreground">
+                  156 partisipan · 3 kubu
+                </span>
               </div>
               <div className="relative h-28 bg-muted/40 rounded-lg overflow-hidden border border-border/50">
                 {/* Grid lines */}
-                <div className="absolute inset-0" style={{
-                  backgroundImage: "linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)",
-                  backgroundSize: "28px 28px",
-                }} />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)",
+                    backgroundSize: "28px 28px",
+                  }}
+                />
                 {/* Cluster A dots (teal) */}
-                {[[28,28],[38,22],[22,38],[32,16],[18,30],[42,30],[26,42],[34,34]].map(([x,y],i) => (
-                  <div key={i} className="absolute w-2 h-2 rounded-full bg-cluster-0/80" style={{ left: x, top: y }} />
+                {[
+                  [28, 28],
+                  [38, 22],
+                  [22, 38],
+                  [32, 16],
+                  [18, 30],
+                  [42, 30],
+                  [26, 42],
+                  [34, 34],
+                ].map(([x, y], i) => (
+                  <div
+                    key={i}
+                    className="absolute w-2 h-2 rounded-full bg-cluster-0/80"
+                    style={{ left: x, top: y }}
+                  />
                 ))}
                 {/* Cluster B dots (orange) — contains "YOU" */}
-                {[[160,20],[170,28],[152,32],[178,22],[165,38],[175,16],[158,44]].map(([x,y],i) => (
-                  <div key={i} className={`absolute rounded-full ${i === 2 ? 'w-3 h-3 bg-cluster-1 ring-2 ring-white -translate-x-0.5 -translate-y-0.5' : 'w-2 h-2 bg-cluster-1/80'}`} style={{ left: x, top: y }} />
+                {[
+                  [160, 20],
+                  [170, 28],
+                  [152, 32],
+                  [178, 22],
+                  [165, 38],
+                  [175, 16],
+                  [158, 44],
+                ].map(([x, y], i) => (
+                  <div
+                    key={i}
+                    className={`absolute rounded-full ${i === 2 ? "w-3 h-3 bg-cluster-1 ring-2 ring-white -translate-x-0.5 -translate-y-0.5" : "w-2 h-2 bg-cluster-1/80"}`}
+                    style={{ left: x, top: y }}
+                  />
                 ))}
                 {/* Cluster C dots (purple) */}
-                {[[94,78],[108,72],[84,82],[100,88],[115,80],[90,68]].map(([x,y],i) => (
-                  <div key={i} className="absolute w-2 h-2 rounded-full bg-cluster-2/80" style={{ left: x, top: y }} />
+                {[
+                  [94, 78],
+                  [108, 72],
+                  [84, 82],
+                  [100, 88],
+                  [115, 80],
+                  [90, 68],
+                ].map(([x, y], i) => (
+                  <div
+                    key={i}
+                    className="absolute w-2 h-2 rounded-full bg-cluster-2/80"
+                    style={{ left: x, top: y }}
+                  />
                 ))}
               </div>
               <div className="flex items-center gap-4 mt-2.5">
-                {[["cluster-0","67 Privasi Ketat"],["cluster-1","54 Pro-Inovasi"],["cluster-2","35 Moderat"]].map(([cls,label]) => (
+                {[
+                  ["cluster-0", "67 Privasi Ketat"],
+                  ["cluster-1", "54 Pro-Inovasi"],
+                  ["cluster-2", "35 Moderat"],
+                ].map(([cls, label]) => (
                   <div key={cls} className="flex items-center gap-1">
                     <div className={`w-2 h-2 rounded-full bg-${cls}`} />
-                    <span className="text-[0.6rem] text-muted-foreground leading-none">{label}</span>
+                    <span className="text-[0.6rem] text-muted-foreground leading-none">
+                      {label}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -303,11 +375,16 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-0 sm:divide-x sm:divide-border">
             {stats.map((s) => (
-              <div key={s.label} className="text-center sm:px-8 first:sm:pl-0 last:sm:pr-0">
+              <div
+                key={s.label}
+                className="text-center sm:px-8 first:sm:pl-0 last:sm:pr-0"
+              >
                 <p className="font-fraunces text-[1.75rem] sm:text-[2.25rem] font-bold text-foreground leading-none">
                   {s.value}
                 </p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">{s.label}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  {s.label}
+                </p>
               </div>
             ))}
           </div>
@@ -315,7 +392,10 @@ export default function HomePage() {
       </section>
 
       {/* ── How it works ── */}
-      <section id="cara-kerja" className="py-16 sm:py-28 max-w-7xl mx-auto px-4 sm:px-6">
+      <section
+        id="cara-kerja"
+        className="py-16 sm:py-28 max-w-7xl mx-auto px-4 sm:px-6"
+      >
         <div className="text-center mb-12 sm:mb-16 space-y-4">
           <p className="text-[0.7rem] font-bold tracking-[0.15em] uppercase text-primary">
             Cara Kerja
@@ -323,7 +403,9 @@ export default function HomePage() {
           <h2 className="font-fraunces text-[2rem] sm:text-[3rem] font-bold text-foreground leading-tight">
             Dari diskusi ke kebijakan,
             <br />
-            <span className="text-muted-foreground font-normal">dalam tiga langkah.</span>
+            <span className="text-muted-foreground font-normal">
+              dalam tiga langkah.
+            </span>
           </h2>
         </div>
 
@@ -334,9 +416,7 @@ export default function HomePage() {
             <div key={step.step} className="space-y-4 md:space-y-5">
               <div
                 className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                  step.accent === "primary"
-                    ? "bg-primary/10"
-                    : "bg-accent/10"
+                  step.accent === "primary" ? "bg-primary/10" : "bg-accent/10"
                 }`}
               >
                 <span
@@ -348,7 +428,9 @@ export default function HomePage() {
                 </span>
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-foreground">{step.title}</h3>
+                <h3 className="text-lg font-semibold text-foreground">
+                  {step.title}
+                </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {step.description}
                 </p>
@@ -368,7 +450,9 @@ export default function HomePage() {
             <h2 className="font-fraunces text-[2rem] sm:text-[3rem] font-bold text-foreground leading-tight">
               Teknologi untuk deliberasi,
               <br />
-              <span className="text-muted-foreground font-normal">bukan untuk polarisasi.</span>
+              <span className="text-muted-foreground font-normal">
+                bukan untuk polarisasi.
+              </span>
             </h2>
           </div>
 
@@ -390,7 +474,9 @@ export default function HomePage() {
                 <h3 className="text-[1rem] sm:text-[1.05rem] font-semibold text-foreground mb-2">
                   {f.title}
                 </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {f.description}
+                </p>
               </div>
             ))}
           </div>
@@ -422,8 +508,12 @@ export default function HomePage() {
                   {t.initial}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground leading-tight">{t.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t.role}</p>
+                  <p className="text-sm font-semibold text-foreground leading-tight">
+                    {t.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t.role}
+                  </p>
                 </div>
                 <span
                   className={`ml-auto text-[0.6rem] font-black tracking-wider px-2 py-1 rounded-full shrink-0 ${
@@ -479,7 +569,9 @@ export default function HomePage() {
           </span>
           <p className="text-xs text-muted-foreground order-last sm:order-none mt-2 sm:mt-0">
             Platform Deliberasi Sipil Indonesia &middot; IOFEST 2026 &middot;{" "}
-            <span className="text-primary/70">Good Governance &amp; Civic Tech</span>
+            <span className="text-primary/70">
+              Good Governance &amp; Civic Tech
+            </span>
           </p>
           <div className="flex items-center gap-5">
             {navLinks.map((l) => (
@@ -500,6 +592,6 @@ export default function HomePage() {
 
 const navLinks = [
   { href: "/issues", label: "Isu" },
-  { href: "/legal", label: "Hukum" },
+  { href: "/hukum", label: "Hukum" },
   { href: "/news", label: "Berita" },
 ];

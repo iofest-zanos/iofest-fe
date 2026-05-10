@@ -297,7 +297,7 @@ function IssueCard({ issue }: { issue: Issue }) {
 }
 
 const SCOPE_OPTIONS: FilterOption[] = [
-  { key: "ALL", label: "Semua Cakupan" },
+  { key: "ALL", label: "Semua Wilayah" },
   { key: "NASIONAL", label: "Nasional" },
   { key: "DKI_JAKARTA", label: "DKI Jakarta" },
   { key: "JAWA_BARAT", label: "Jawa Barat" },
@@ -360,7 +360,11 @@ export default function IssuesPage() {
   const [error, setError] = useState<string | null>(null);
   const [sheetScope, setSheetScope] = useState(false);
   const [sheetStatus, setSheetStatus] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (window.innerWidth >= 1024) setSidebarOpen(true);
+  }, []);
 
   useEffect(() => {
     const ctl = new AbortController();
@@ -390,7 +394,7 @@ export default function IssuesPage() {
     setSearchQuery("");
   };
 
-  const scopeLabel = SCOPE_OPTIONS.find((o) => o.key === selectedScope)?.label ?? "Semua Cakupan";
+  const scopeLabel = SCOPE_OPTIONS.find((o) => o.key === selectedScope)?.label ?? "Semua Wilayah";
   const statusLabel = STATUS_OPTIONS.find((o) => o.key === selectedStatus)?.label ?? "Semua Status";
 
   return (

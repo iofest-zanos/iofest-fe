@@ -117,42 +117,6 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Tier comparison */}
-          <div className="space-y-3">
-            {[
-              { tier: "Warga", desc: "Vote stance, lapor isu, subscribe", highlight: false },
-              { tier: "Expert", desc: "Propose isu, post stance penuh", highlight: true },
-              { tier: "Pejabat", desc: "Official response, policy brief", highlight: false },
-            ].map(({ tier, desc, highlight }) => (
-              <div
-                key={tier}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
-                  highlight ? "bg-white/10" : "bg-transparent"
-                }`}
-              >
-                <div
-                  className={`w-2 h-2 rounded-full shrink-0 ${
-                    tier === "Warga"
-                      ? "bg-background/30"
-                      : tier === "Expert"
-                      ? "bg-accent"
-                      : "bg-status-enacted"
-                  }`}
-                />
-                <div>
-                  <p className={`text-sm font-semibold ${highlight ? "text-background" : "text-background/60"}`}>
-                    {tier}
-                  </p>
-                  <p className="text-xs text-background/40">{desc}</p>
-                </div>
-                {highlight && (
-                  <span className="ml-auto text-[0.6rem] font-bold text-accent bg-accent/20 px-2 py-0.5 rounded-full">
-                    POPULER
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
 
         <p className="text-background/30 text-xs">
